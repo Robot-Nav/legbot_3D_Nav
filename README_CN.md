@@ -15,7 +15,7 @@ English documentation: [README.md](README.md)
 
 | EGO-Planner | SCAN-Planner |
 | :---: | :---: |
-| — | — |
+| <video src="https://github.com/user-attachments/assets/c5f88789-fc8c-410c-974f-f1057fb6bb33" width="100%" controls muted autoplay loop></video> | <video src="https://github.com/user-attachments/assets/41fd4757-47ea-4a4e-95ac-719ddbcb9ef5" width="100%" controls muted autoplay loop></video> |
 
 ## 系统架构
 
