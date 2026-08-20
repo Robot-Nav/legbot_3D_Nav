@@ -1,0 +1,45 @@
+<launch>
+  <arg name="local_planner" default="ego" doc="ego or scan"/>
+  <arg name="localization" default="gazebo" doc="gazebo or fastlio"/>
+  <arg name="fastlio_save_pcd" default="false"/>
+  <arg name="fastlio_pcd_save_interval" default="-1"/>
+
+  <group if="$(eval arg('localization') == 'gazebo')">
+    <include file="$(find legbot_bringup)/launch/simulation.launch"/>
+  </group>
+
+  <group if="$(eval arg('localization') == 'fastlio')">
+    <include file="$(find legbot_bringup)/launch/simulation.launch">
+      <arg name="publish_ground_truth" value="false"/>
+    </include>
+    <include file="$(find legbot_bringup)/launch/fastlio.launch">
+      <arg name="save_pcd" value="$(arg fastlio_save_pcd)"/>
+      <arg name="pcd_save_interval" value="$(arg fastlio_pcd_save_interval)"/>
+    </include>
+    <!-- Building simulation: T_map_odom is derived from the A1 spawn pose
+         and the fixed base->livox_imu_link extrinsic. Change it for another
+         PCD/world pair; FAST-LIO does not relocalize into an existing map. -->
+    <include file="$(find legbot_bringup)/launch/map_to_odom_static.launch">
+      <arg name="x" value="-4.7766"/>
+      <arg name="y" value="6.9767"/>
+      <arg name="z" value="0.7190"/>
+      <arg name="pitch" value="0.7850"/>
+    </include>
+  </group>
+
+  <include file="$(find legbot_bringup)/launch/controller.launch"/>
+
+  <group if="$(eval arg('localization') == 'gazebo')">
+    <include file="$(find legbot_bringup)/launch/local_planners.launch">
+      <arg name="local_planner" value="$(arg local_planner)"/>
+    </include>
+  </group>
+
+  <group if="$(eval arg('localization') == 'fastlio')">
+    <include file="$(find legbot_bringup)/launch/local_planners.launch">
+      <arg name="local_planner" value="$(arg local_planner)"/>
+      <arg name="odom_topic" value="/fast_lio/odometry_base"/>
+      <arg name="cloud_topic" value="/fast_lio/cloud_registered"/>
+    </include>
+  </group>
+</launch>

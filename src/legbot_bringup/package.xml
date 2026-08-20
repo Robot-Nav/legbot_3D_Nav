@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>legbot_bringup</name>
+  <version>0.1.0</version>
+  <description>Launch entry points for Legbot 3D navigation simulation.</description>
+  <maintainer email="maintainer@example.com">Legbot Navigation</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>tf</build_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>gazebo_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>tf</exec_depend>
+  <exec_depend>ego_planner</exec_depend>
+  <exec_depend>fast_lio</exec_depend>
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>scan_planner</exec_depend>
+  <exec_depend>unitree_guide</exec_depend>
+</package>

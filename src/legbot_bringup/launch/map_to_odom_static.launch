@@ -1,0 +1,15 @@
+<launch>
+  <arg name="map_frame" default="map"/>
+  <arg name="odom_frame" default="odom"/>
+  <arg name="x" default="0.0"/>
+  <arg name="y" default="0.0"/>
+  <arg name="z" default="0.0"/>
+  <arg name="yaw" default="0.0"/>
+  <arg name="pitch" default="0.0"/>
+  <arg name="roll" default="0.0"/>
+
+  <!-- Publishes T_map_odom. Use only after the FAST-LIO odom origin has
+       been aligned to the PCT map; it is not a substitute for relocalization. -->
+  <node pkg="tf" type="static_transform_publisher" name="map_to_odom_static"
+        args="$(arg x) $(arg y) $(arg z) $(arg yaw) $(arg pitch) $(arg roll) $(arg map_frame) $(arg odom_frame) 50"/>
+</launch>

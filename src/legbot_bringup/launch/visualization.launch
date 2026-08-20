@@ -1,0 +1,5 @@
+<launch>
+  <arg name="rviz_config" default="$(find legbot_bringup)/rviz/navigation.rviz"/>
+  <node pkg="rviz" type="rviz" name="rviz" output="screen"
+        args="-d $(arg rviz_config)"/>
+</launch>

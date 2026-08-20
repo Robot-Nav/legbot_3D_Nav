@@ -1,0 +1,107 @@
+<launch>
+  <arg name="is_real_world"/>
+  <arg name="navi_mode"/>
+  <arg name="sensor_type"/>
+  <arg name="body_pose_topic"/>
+  <arg name="sensor_pose_topic"/>
+  <arg name="cloud_topic"/>
+  <arg name="cloud_is_world"/>
+  <arg name="depth_topic"/>
+  <arg name="cx"/>
+  <arg name="cy"/>
+  <arg name="fx"/>
+  <arg name="fy"/>
+
+  <!-- public parameters -->
+  <arg name="max_vel" default="0.75"/>
+  <arg name="max_acc" default="0.5"/>
+  <arg name="planning_horizon" default="3.5"/>
+
+  <!-- main node -->
+  <node pkg="scan_planner" name="scan_planner_node" type="scan_planner_node" output="screen" clear_params="true">
+    <remap from="/grid_map/body_pose" to="$(arg body_pose_topic)"/>
+    <remap from="/grid_map/sensor_pose" to="$(arg sensor_pose_topic)"/>
+    <param name="grid_map/sensor_type" value="$(arg sensor_type)" type="str"/>
+    <remap from="/grid_map/cloud" to="$(arg cloud_topic)"/>
+    <param name="grid_map/cloud_is_world" value="$(arg cloud_is_world)"/>
+    <remap from="/grid_map/depth" to="$(arg depth_topic)"/>
+    <param name="grid_map/need_extrinsic" value="$(arg is_real_world)" type="bool"/>
+
+    <!-- planning fsm -->
+    <param name="fsm/navi_mode" value="$(arg navi_mode)" type="int"/>
+    <param name="fsm/thresh_replan" value="1.0" type="double"/>
+    <param name="fsm/thresh_no_replan" value="0.1" type="double"/>
+    <param name="fsm/finish_dist" value="0.35" type="double"/>
+    <param name="fsm/finish_dist_z" value="0.25" type="double"/>
+    <param name="fsm/planning_horizon" value="$(arg planning_horizon)" type="double"/>
+    <param name="fsm/emergency_time_" value="1.0" type="double"/>
+    <param name="fsm/fail_safe" value="true" type="bool"/> 
+    <param name="fsm/max_replan_fail_count" value="1000" type="int"/>
+    <param name="fsm/is_real_world" value="$(arg is_real_world)" type="bool"/>
+
+    <!-- sliding map -->
+    <param name="grid_map/resolution" value="0.05" />
+    <param name="grid_map/sliding_map_size_x" value="10.0" />
+    <param name="grid_map/sliding_map_size_y" value="10.0" />
+    <param name="grid_map/sliding_map_size_z" value="5.0" />
+    <param name="grid_map/map_sliding_thresh" value="0.2"/>
+    <param name="grid_map/double_cylinder_radius" value="0.25" />
+    <param name="grid_map/double_cylinder_offset" value="0.18" />
+    <param name="grid_map/obstacles_inflation_z_up" value="0.1" />
+    <param name="grid_map/obstacles_inflation_z_down" value="0.1" />
+    <param name="grid_map/collision_check_enabled" value="true" />
+
+    <!-- depth camera intrinsics -->
+    <param name="grid_map/cx" value="$(arg cx)"/>
+    <param name="grid_map/cy" value="$(arg cy)"/>
+    <param name="grid_map/fx" value="$(arg fx)"/>
+    <param name="grid_map/fy" value="$(arg fy)"/>
+
+    <!-- depth -->
+    <param name="grid_map/depth_filter_maxdist"   value="3.0"/>
+    <param name="grid_map/depth_filter_mindist"   value="0.3"/>
+    <param name="grid_map/depth_filter_margin"    value="1"/>
+    <param name="grid_map/k_depth_scaling_factor" value="1000.0"/>
+    <param name="grid_map/skip_pixel" value="2"/>
+
+    <!-- local fusion -->
+    <param name="grid_map/p_hit" value="0.85"/>
+    <param name="grid_map/p_miss" value="0.30"/>
+    <param name="grid_map/p_min" value="0.12"/>
+    <param name="grid_map/p_max" value="0.98"/>
+    <param name="grid_map/p_occ" value="0.80"/>
+    <param name="grid_map/max_ray_length" value="5.0"/>
+    <param name="grid_map/vis_height" value="0.3" type="double"/>
+
+    <!-- planner manager -->
+    <param name="manager/max_vel" value="$(arg max_vel)" type="double"/>
+    <param name="manager/max_acc" value="$(arg max_acc)" type="double"/>
+    <param name="manager/max_jerk" value="4" type="double"/>
+    <param name="manager/control_points_distance" value="0.2" type="double"/>
+    <param name="manager/feasibility_tolerance" value="0.5" type="double"/>
+    <param name="manager/planning_horizon" value="$(arg planning_horizon)" type="double"/>
+
+    <!-- trajectory optimization -->
+    <param name="optimization/lambda_smooth" value="1.0" type="double"/>
+    <param name="optimization/lambda_collision" value="1.0" type="double"/>
+    <param name="optimization/lambda_feasibility" value="0.1" type="double"/>
+    <param name="optimization/lambda_fitness" value="1.0" type="double"/>
+    <param name="optimization/dist0" value="0.2" type="double"/>
+    <param name="optimization/max_vel" value="$(arg max_vel)" type="double"/>
+    <param name="optimization/vel_tolerance" value="1.0" type="double"/>
+    <param name="optimization/max_acc" value="$(arg max_acc)" type="double"/>
+    <param name="optimization/acc_tolerance" value="1.0" type="double"/>
+
+  </node>
+
+  <!-- trajectory tracking -->
+  <param name="closed_loop_controller/time_forward" value="0.8" type="double"/>
+  <param name="closed_loop_controller/heading_error_threshold" value="0.8" type="double"/>
+  <param name="closed_loop_controller/kp_pos" value="0.8" type="double"/>
+  <param name="closed_loop_controller/kp_yaw" value="1.5" type="double"/>
+  <param name="closed_loop_controller/max_vx" value="$(arg max_vel)" type="double"/>
+  <param name="closed_loop_controller/max_vy" value="0.35" type="double"/>
+  <param name="closed_loop_controller/max_vyaw" value="1.0" type="double"/>
+  <param name="closed_loop_controller/finish_dist" value="0.15" type="double"/>
+
+</launch>

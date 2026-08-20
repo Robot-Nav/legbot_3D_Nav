@@ -1,0 +1,118 @@
+<launch>
+  <arg name="odom_topic" default="/Odometry_gazebo"/>
+  <arg name="cloud_topic" default="/livox/Pointcloud2"/>
+  <arg name="global_path_topic" default="/pct_path"/>
+  <arg name="frame_id" default="odom"/>
+  <arg name="max_vel" default="0.5"/>
+  <arg name="max_acc" default="0.3"/>
+  <arg name="planning_horizon" default="2.0"/>
+  <arg name="enable_collision_check" default="true"/>
+  <arg name="reference_mode" default="piecewise_linear"/>
+  <arg name="z_projection_weight" default="8.0"/>
+
+  <node pkg="scan_planner" name="scan_planner_node" type="scan_planner_node"
+        output="screen" clear_params="true">
+    <remap from="/scan_planner_node/optimal_list" to="/local_planner/optimal_path"/>
+    <remap from="/scan_planner_node/goal_point" to="/local_planner/goal"/>
+    <remap from="/scan_planner_node/local_target" to="/scan/local_target"/>
+    <remap from="/scan_planner_node/heading_vector" to="/scan/heading_vector"/>
+    <remap from="/grid_map/body_pose" to="$(arg odom_topic)"/>
+    <remap from="/grid_map/sensor_pose" to="$(arg odom_topic)"/>
+    <remap from="/grid_map/cloud" to="$(arg cloud_topic)"/>
+    <remap from="/initial_path" to="$(arg global_path_topic)"/>
+    <remap from="/planning/bspline" to="/scan/planning/bspline"/>
+    <remap from="/planning/data_display" to="/scan/planning/data_display"/>
+    <remap from="/planning/go2_execution_frozen" to="/scan/planning/execution_frozen"/>
+    <remap from="/grid_map/occupancy" to="/local_planner/grid_map/occupancy"/>
+    <remap from="/grid_map/occupancy_inflate" to="/local_planner/grid_map/occupancy_inflate"/>
+    <remap from="/grid_map/sliding_map_bbox" to="/scan/grid_map/sliding_map_bbox"/>
+    <remap from="/grid_map/unknown" to="/scan/grid_map/unknown"/>
+    <remap from="/grid_map/depth_cloud" to="/scan/grid_map/depth_cloud"/>
+    <remap from="/grid_map/sensor_pose_extrinsic" to="/scan/grid_map/sensor_pose_extrinsic"/>
+
+    <param name="fsm/navi_mode" value="3" type="int"/>
+    <param name="fsm/global_reference_mode" value="$(arg reference_mode)"/>
+    <param name="fsm/thresh_replan" value="1.0"/>
+    <param name="fsm/thresh_no_replan" value="0.1"/>
+    <param name="fsm/finish_dist" value="0.35"/>
+    <param name="fsm/finish_dist_z" value="0.25"/>
+    <param name="fsm/planning_horizon" value="$(arg planning_horizon)"/>
+    <param name="fsm/z_projection_weight" value="$(arg z_projection_weight)"/>
+    <param name="fsm/align_reference_height_to_odom" value="true"/>
+    <param name="fsm/max_reference_height_alignment" value="0.8"/>
+    <param name="fsm/emergency_time_" value="1.0"/>
+    <param name="fsm/fail_safe" value="true"/>
+    <param name="fsm/max_replan_fail_count" value="1000"/>
+    <param name="fsm/is_real_world" value="false"/>
+
+    <param name="grid_map/sensor_type" value="lidar"/>
+    <param name="grid_map/cloud_is_world" value="true"/>
+    <param name="grid_map/need_extrinsic" value="false"/>
+    <param name="grid_map/frame_id" value="$(arg frame_id)"/>
+    <param name="grid_map/sliding_map_frame_id" value="scan_sliding_map"/>
+    <param name="grid_map/resolution" value="0.10"/>
+    <param name="grid_map/sliding_map_size_x" value="10.0"/>
+    <param name="grid_map/sliding_map_size_y" value="10.0"/>
+    <param name="grid_map/sliding_map_size_z" value="5.0"/>
+    <param name="grid_map/map_sliding_thresh" value="0.2"/>
+    <param name="grid_map/collision_check_enabled" value="$(arg enable_collision_check)"/>
+    <param name="grid_map/double_cylinder_radius" value="0.15"/>
+    <param name="grid_map/double_cylinder_offset" value="0.05"/>
+    <param name="grid_map/obstacles_inflation_z_up" value="0.03"/>
+    <param name="grid_map/obstacles_inflation_z_down" value="0.03"/>
+    <param name="grid_map/ground_height" value="-0.10"/>
+    <param name="grid_map/vis_height" value="0.60"/>
+    <param name="grid_map/depth_filter_maxdist" value="5.0"/>
+    <param name="grid_map/depth_filter_mindist" value="0.3"/>
+    <param name="grid_map/depth_filter_margin" value="1"/>
+    <param name="grid_map/k_depth_scaling_factor" value="1000.0"/>
+    <param name="grid_map/skip_pixel" value="2"/>
+    <param name="grid_map/p_hit" value="0.85"/>
+    <param name="grid_map/p_miss" value="0.30"/>
+    <param name="grid_map/p_min" value="0.12"/>
+    <param name="grid_map/p_max" value="0.98"/>
+    <param name="grid_map/p_occ" value="0.80"/>
+    <param name="grid_map/max_ray_length" value="5.0"/>
+
+    <param name="manager/max_vel" value="$(arg max_vel)"/>
+    <param name="manager/max_acc" value="$(arg max_acc)"/>
+    <param name="manager/max_jerk" value="4.0"/>
+    <param name="manager/control_points_distance" value="0.2"/>
+    <param name="manager/feasibility_tolerance" value="0.5"/>
+    <param name="manager/planning_horizon" value="$(arg planning_horizon)"/>
+
+    <param name="optimization/lambda_smooth" value="1.0"/>
+    <param name="optimization/lambda_collision" value="1.0"/>
+    <param name="optimization/lambda_feasibility" value="0.1"/>
+    <param name="optimization/lambda_fitness" value="1.0"/>
+    <param name="optimization/dist0" value="0.2"/>
+    <param name="optimization/max_vel" value="$(arg max_vel)"/>
+    <param name="optimization/vel_tolerance" value="1.0"/>
+    <param name="optimization/max_acc" value="$(arg max_acc)"/>
+    <param name="optimization/acc_tolerance" value="1.0"/>
+  </node>
+
+  <node pkg="scan_planner" name="scan_a1_cmd_adapter"
+        type="scan_a1_cmd_adapter" output="screen">
+    <remap from="/planning/bspline" to="/scan/planning/bspline"/>
+    <remap from="/cmd_vel" to="/cmd_vel"/>
+    <remap from="/planning/go2_execution_frozen" to="/scan/planning/execution_frozen"/>
+    <param name="time_forward" value="0.55"/>
+    <param name="heading_error_threshold" value="0.8"/>
+    <param name="kp_pos" value="0.9"/>
+    <param name="kp_yaw" value="1.2"/>
+    <param name="max_vx" value="$(arg max_vel)"/>
+    <param name="max_vy" value="0.25"/>
+    <param name="max_vyaw" value="1.0"/>
+    <param name="finish_dist" value="0.25"/>
+    <param name="finish_dist_z" value="0.20"/>
+    <param name="tracking_z_weight" value="0.0"/>
+    <param name="odom_timeout" value="0.5"/>
+    <param name="slope_up_threshold" value="0.30"/>
+    <param name="slope_down_threshold" value="-0.30"/>
+    <param name="stair_speed_scale" value="1.0"/>
+    <param name="min_stair_speed" value="0.30"/>
+  </node>
+
+  <param name="body_pose_topic" value="$(arg odom_topic)"/>
+</launch>

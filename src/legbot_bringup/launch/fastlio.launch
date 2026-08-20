@@ -1,0 +1,42 @@
+<launch>
+  <arg name="lidar_topic" default="/livox/points_raw"/>
+  <arg name="imu_topic" default="/livox/imu"/>
+  <arg name="odom_topic" default="/fast_lio/odometry"/>
+  <arg name="base_odom_topic" default="/fast_lio/odometry_base"/>
+  <arg name="registered_cloud_topic" default="/fast_lio/cloud_registered"/>
+  <arg name="path_topic" default="/fast_lio/path"/>
+  <arg name="world_frame" default="odom"/>
+  <arg name="body_frame" default="livox_imu_link"/>
+  <arg name="publish_tf" default="false"/>
+  <arg name="base_frame" default="base"/>
+  <arg name="save_pcd" default="false"/>
+  <arg name="pcd_save_interval" default="-1"
+       doc="-1 saves one scans.pcd on clean shutdown; positive values save numbered chunks"/>
+
+  <rosparam command="load" file="$(find legbot_bringup)/config/fastlio_mid360.yaml"/>
+
+  <node pkg="fast_lio" type="fastlio_mapping" name="fastlio_mapping" output="screen">
+    <remap from="/Odometry" to="$(arg odom_topic)"/>
+    <remap from="/cloud_registered" to="$(arg registered_cloud_topic)"/>
+    <remap from="/cloud_registered_body" to="/fast_lio/cloud_registered_body"/>
+    <remap from="/Laser_map" to="/fast_lio/map"/>
+    <remap from="/path" to="$(arg path_topic)"/>
+    <param name="common/lid_topic" value="$(arg lidar_topic)"/>
+    <param name="common/imu_topic" value="$(arg imu_topic)"/>
+    <param name="common/world_frame" value="$(arg world_frame)"/>
+    <param name="common/body_frame" value="$(arg body_frame)"/>
+    <param name="publish/tf_en" value="$(arg publish_tf)"/>
+    <param name="pcd_save/pcd_save_en" value="$(arg save_pcd)"/>
+    <param name="pcd_save/interval" value="$(arg pcd_save_interval)"/>
+  </node>
+
+  <!-- FAST-LIO estimates the IMU pose. Convert it to the robot base pose
+       using the fixed base -> livox_imu_link transform published by the URDF. -->
+  <node pkg="legbot_bringup" type="fastlio_odom_adapter" name="fastlio_odom_adapter" output="screen">
+    <remap from="input" to="$(arg odom_topic)"/>
+    <remap from="output" to="$(arg base_odom_topic)"/>
+    <param name="base_frame" value="$(arg base_frame)"/>
+    <param name="sensor_frame" value="$(arg body_frame)"/>
+    <param name="publish_tf" value="true"/>
+  </node>
+</launch>

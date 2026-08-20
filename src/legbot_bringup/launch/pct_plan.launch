@@ -1,0 +1,12 @@
+<launch>
+  <arg name="scene" default="Building"/>
+  <arg name="tomogram" default="building2_9"/>
+  <arg name="start_x" default="-5.5"/>
+  <arg name="start_y" default="6.0"/>
+  <arg name="start_z" default="0.5"/>
+  <arg name="goal_x" default="2.0"/>
+  <arg name="goal_y" default="-3.0"/>
+  <arg name="goal_z" default="4.5"/>
+  <node pkg="legbot_bringup" type="pct_plan" name="pct_planner" output="screen"
+        args="--scene $(arg scene) --tomogram $(arg tomogram) --start $(arg start_x) $(arg start_y) $(arg start_z) --goal $(arg goal_x) $(arg goal_y) $(arg goal_z)"/>
+</launch>

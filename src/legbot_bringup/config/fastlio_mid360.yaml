@@ -1,0 +1,43 @@
+# Project profile for FAST-LIO with the A1 Gazebo MID-360 model.
+# lidar_type 4 consumes ordinary sensor_msgs/PointCloud2 and therefore does
+# not require the obsolete livox_ros_driver (v1) CustomMsg package.
+common:
+  lid_topic: /livox/points_raw
+  imu_topic: /livox/imu
+  world_frame: odom
+  body_frame: livox_imu_link
+  time_sync_en: false
+  time_offset_lidar_to_imu: 0.0
+
+preprocess:
+  lidar_type: 4
+  scan_line: 1
+  scan_rate: 10
+  timestamp_unit: 0
+  blind: 0.5
+
+mapping:
+  acc_cov: 0.1
+  gyr_cov: 0.1
+  b_acc_cov: 0.0001
+  b_gyr_cov: 0.0001
+  fov_degree: 360
+  det_range: 40.0
+  extrinsic_est_en: false
+  # LiDAR position in IMU frame. Values are the inverse of the fixed
+  # laser_livox -> livox_imu_link transform in a1_description/robot.xacro.
+  extrinsic_T: [0.011, 0.02329, -0.04412]
+  extrinsic_R: [1, 0, 0,
+                0, 1, 0,
+                0, 0, 1]
+
+publish:
+  path_en: true
+  scan_publish_en: true
+  dense_publish_en: false
+  scan_bodyframe_pub_en: false
+  tf_en: false
+
+pcd_save:
+  pcd_save_en: false
+  interval: -1

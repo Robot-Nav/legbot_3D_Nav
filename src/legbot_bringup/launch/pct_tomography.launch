@@ -1,0 +1,6 @@
+<launch>
+  <arg name="scene" default="Building"/>
+  <arg name="pcd_file" default="building2_9.pcd"/>
+  <node pkg="legbot_bringup" type="pct_tomography" name="pct_tomography" output="screen"
+        args="--scene $(arg scene) --pcd $(arg pcd_file)"/>
+</launch>

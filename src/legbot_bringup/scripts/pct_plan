@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Launch PCT global planning with its dedicated Conda interpreter.
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+workspace_dir="$(cd "${script_dir}/../../.." && pwd)"
+pct_dir="${workspace_dir}/src/PCT_planner"
+planner_scripts_dir="${pct_dir}/planner/scripts"
+pct_python="${PCT_PYTHON:-python3}"
+
+export LD_LIBRARY_PATH="${pct_dir}/planner/lib/3rdparty/gtsam-4.1.1/install/lib:${pct_dir}/planner/lib/build/src/a_star:${pct_dir}/planner/lib/build/src/ele_planner:${pct_dir}/planner/lib/build/src/map_manager:${pct_dir}/planner/lib/build/src/trajectory_optimization:${pct_dir}/planner/lib/build/src/common/smoothing${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+
+cd "${planner_scripts_dir}"
+exec "${pct_python}" \
+  "${planner_scripts_dir}/plan.py" "$@"

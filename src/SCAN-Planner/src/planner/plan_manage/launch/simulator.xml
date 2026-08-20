@@ -1,0 +1,87 @@
+<launch>
+  <arg name="is_real_world"/>
+  <arg name="navi_mode"/>
+  <arg name="sensor_type"/>
+
+  <!-- initial state -->
+  <arg name="init_x" default="$(eval -19.0 if arg('navi_mode') == 1 else -5.5)"/>
+  <arg name="init_y" default="$(eval 1.0 if arg('navi_mode') == 1 else 5.5)"/>
+  <arg name="init_z" default="$(eval 0.25 if arg('navi_mode') == 1 else 0.5)"/>
+  <param unless="$(arg is_real_world)" name="init_x" value="$(arg init_x)" type="double"/>
+  <param unless="$(arg is_real_world)" name="init_y" value="$(arg init_y)" type="double"/>
+  <param unless="$(arg is_real_world)" name="init_z" value="$(arg init_z)" type="double"/>
+
+  <!-- sim map size -->
+  <arg name="map_size_x" default="40.0"/>
+  <arg name="map_size_y" default="40.0"/>
+  <arg name="map_size_z" default="5.0"/>
+
+  <!-- PCD map source -->
+  <arg name="use_pcd_map" default="false"/>
+  <arg name="pcd_map_file" default="$(find map_generator)/resource/building.pcd"/>
+  <arg name="pcd_frame_id" default="world"/>
+  <arg name="pcd_publish_rate" default="0.2"/>
+  <arg name="downsample_resolution" default="0.1"/>
+
+  <!-- local sensing -->
+  <arg name="use_gpu" default="false"/>
+
+  <node if="$(eval (not arg('is_real_world')) and arg('use_pcd_map'))" pkg="map_generator" type="map_pub" name="map_pub" output="screen" args="$(arg pcd_map_file)">
+      <param name="frame_id" value="$(arg pcd_frame_id)"/>
+      <param name="publish_rate" value="$(arg pcd_publish_rate)"/>
+      <param name="cloud_topic" value="/map_generator/global_cloud"/>
+      <param name="downsample_res" value="$(arg downsample_resolution)"/>
+  </node>
+
+  <node if="$(eval (not arg('is_real_world')) and (not arg('use_pcd_map')))" pkg="mockamap" type="mockamap_node" name="mockamap_node" output="screen">  
+      <remap from="/mock_map" to="/map_generator/global_cloud"/>
+
+      <param name="seed" type="int" value="127"/>
+      <param name="update_freq" type="double" value="0.5"/>
+
+      <!-- box edge length, unit meter-->
+      <param name="resolution" type="double" value="0.1"/>
+
+      <!-- map size unit meter-->
+      <param name="x_length" value="$(arg map_size_x)"/>
+      <param name="y_length" value="$(arg map_size_y)"/>
+      <param name="z_length" value="$(arg map_size_z)"/>
+
+      <param name="type" type="int" value="2"/>
+
+      <!-- 1 perlin noise parameters -->
+      <param name="complexity"    type="double" value="0.05"/>
+      <param name="fill"          type="double" value="0.12"/>
+      <param name="fractal"       type="int"    value="1"/>
+      <param name="attenuation"   type="double" value="0.1"/>
+
+      <!-- 2 post2d random box map parameters -->
+      <param name="width_min"       type="double" value="0.2"/>
+      <param name="width_max"       type="double" value="0.8"/>
+      <param name="height_min"      type="double" value="2.0"/>
+      <param name="height_max"      type="double" value="2.0"/>
+      <param name="obstacle_number" type="int"    value="500"/>
+      <param name="surface_resolution" type="double" value="0.05"/>
+
+  </node>
+
+  <node pkg="odom_visualization" name="odom_visualization" type="odom_visualization" output="screen"/>
+
+  <group ns="pcl_render_node">
+        <param name="sensor_type" value="$(arg sensor_type)" />
+
+        <param name="map/x_size"     value="$(arg map_size_x)"/>
+        <param name="map/y_size"     value="$(arg map_size_y)"/>
+        <param name="map/z_size"     value="$(arg map_size_z)"/>
+  </group>
+
+  <node if="$(eval (not arg('is_real_world')) and arg('use_gpu'))" pkg="local_sensing_node" type="opengl_render_node" name="pcl_render_node" output="screen" args="$(arg pcd_map_file)">
+        <param name="use_global_map_topic" value="$(eval not arg('use_pcd_map'))" />
+        <remap from="~global_map" to="/map_generator/global_cloud"/>
+  </node>
+
+  <node if="$(eval (not arg('is_real_world')) and (not arg('use_gpu')))" pkg="local_sensing_node" type="pcl_render_node" name="pcl_render_node" output="screen">
+        <remap from="~global_map" to="/map_generator/global_cloud"/>
+  </node>
+
+</launch>

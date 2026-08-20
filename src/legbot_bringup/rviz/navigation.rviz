@@ -1,0 +1,582 @@
+Panels:
+  - Class: rviz/Displays
+    Help Height: 85
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global planning (PCT)1
+        - /Local planning1
+        - /Robot sensing and state1
+      Splitter Ratio: 0.6495726704597473
+    Tree Height: 640
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Expanded: ~
+    Name: Tool Properties
+    Splitter Ratio: 0.5
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.3499999940395355
+      Cell Size: 1
+      Class: rviz/Grid
+      Color: 120; 120; 120
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Ground grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 40
+      Reference Frame: map
+      Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        FL_calf:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FL_foot:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FL_hip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FL_thigh:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FL_thigh_shoulder:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FR_calf:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FR_foot:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FR_hip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FR_thigh:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FR_thigh_shoulder:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Link Tree Style: Links in Alphabetic Order
+        RL_calf:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RL_foot:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RL_hip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RL_thigh:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RL_thigh_shoulder:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RR_calf:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RR_foot:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RR_hip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RR_thigh:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RR_thigh_shoulder:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        laser_livox:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        livox_imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        trunk:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: A1 robot
+      Robot Description: robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Class: rviz/TF
+      Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ""
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        FL_calf:
+          Value: true
+        FL_foot:
+          Value: true
+        FL_hip:
+          Value: true
+        FL_thigh:
+          Value: true
+        FL_thigh_shoulder:
+          Value: true
+        FR_calf:
+          Value: true
+        FR_foot:
+          Value: true
+        FR_hip:
+          Value: true
+        FR_thigh:
+          Value: true
+        FR_thigh_shoulder:
+          Value: true
+        RL_calf:
+          Value: true
+        RL_foot:
+          Value: true
+        RL_hip:
+          Value: true
+        RL_thigh:
+          Value: true
+        RL_thigh_shoulder:
+          Value: true
+        RR_calf:
+          Value: true
+        RR_foot:
+          Value: true
+        RR_hip:
+          Value: true
+        RR_thigh:
+          Value: true
+        RR_thigh_shoulder:
+          Value: true
+        base:
+          Value: true
+        imu_link:
+          Value: true
+        laser_livox:
+          Value: true
+        livox_imu_link:
+          Value: true
+        map:
+          Value: true
+        odom:
+          Value: true
+        trunk:
+          Value: true
+      Marker Alpha: 1
+      Marker Scale: 0.5
+      Name: Main TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        map:
+          odom:
+            base:
+              laser_livox:
+                livox_imu_link:
+                  {}
+              trunk:
+                FL_hip:
+                  FL_thigh:
+                    FL_calf:
+                      FL_foot:
+                        {}
+                  FL_thigh_shoulder:
+                    {}
+                FR_hip:
+                  FR_thigh:
+                    FR_calf:
+                      FR_foot:
+                        {}
+                  FR_thigh_shoulder:
+                    {}
+                RL_hip:
+                  RL_thigh:
+                    RL_calf:
+                      RL_foot:
+                        {}
+                  RL_thigh_shoulder:
+                    {}
+                RR_hip:
+                  RR_thigh:
+                    RR_calf:
+                      RR_foot:
+                        {}
+                  RR_thigh_shoulder:
+                    {}
+                imu_link:
+                  {}
+      Update Interval: 0
+      Value: true
+    - Class: rviz/Group
+      Displays:
+        - Alpha: 0.2199999988079071
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 7.167029857635498
+            Min Value: 0.008092070929706097
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: AxisColor
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Min Color: 0; 0; 0
+          Name: Global PCD
+          Position Transformer: XYZ
+          Queue Size: 3
+          Selectable: true
+          Size (Pixels): 2
+          Size (m): 0.029999999329447746
+          Style: Points
+          Topic: /global_points
+          Unreliable: false
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Alpha: 0.6499999761581421
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 6.999972820281982
+            Min Value: 0.013091733679175377
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: AxisColor
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Min Color: 0; 0; 0
+          Name: Tomogram
+          Position Transformer: XYZ
+          Queue Size: 3
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.07999999821186066
+          Style: Boxes
+          Topic: /tomogram
+          Unreliable: false
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz/Path
+          Color: 255; 60; 40
+          Enabled: true
+          Head Diameter: 0.30000001192092896
+          Head Length: 0.20000000298023224
+          Length: 0.30000001192092896
+          Line Style: Billboards
+          Line Width: 0.11999999731779099
+          Name: PCT global path
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 255; 85; 255
+          Pose Style: None
+          Queue Size: 5
+          Radius: 0.029999999329447746
+          Shaft Diameter: 0.10000000149011612
+          Shaft Length: 0.10000000149011612
+          Topic: /pct_path
+          Unreliable: false
+          Value: true
+      Enabled: true
+      Name: Global planning (PCT)
+    - Class: rviz/Group
+      Displays:
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /local_planner/optimal_path
+          Name: Active local trajectory
+          Namespaces:
+            {}
+          Queue Size: 30
+          Value: true
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /local_planner/goal
+          Name: Current reference waypoint
+          Namespaces:
+            {}
+          Queue Size: 10
+          Value: true
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /scan/local_target
+          Name: SCAN dynamic local target
+          Namespaces:
+            {}
+          Queue Size: 10
+          Value: true
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /scan/heading_vector
+          Name: SCAN expected heading
+          Namespaces:
+            {}
+          Queue Size: 10
+          Value: true
+        - Alpha: 0.41999998688697815
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz/PointCloud2
+          Color: 80; 180; 255
+          Color Transformer: FlatColor
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Min Color: 0; 0; 0
+          Name: Active planner occupancy
+          Position Transformer: XYZ
+          Queue Size: 2
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.10000000149011612
+          Style: Boxes
+          Topic: /local_planner/grid_map/occupancy_inflate
+          Unreliable: false
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Class: rviz/Marker
+          Enabled: false
+          Marker Topic: /scan/grid_map/sliding_map_bbox
+          Name: SCAN sliding-map boundary
+          Namespaces:
+            {}
+          Queue Size: 5
+          Value: false
+      Enabled: true
+      Name: Local planning
+    - Class: rviz/Group
+      Displays:
+        - Alpha: 0.75
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 5.813467502593994
+            Min Value: 5.748196053900756e-05
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: AxisColor
+          Decay Time: 0.25
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Min Color: 0; 0; 0
+          Name: MID360 local cloud
+          Position Transformer: XYZ
+          Queue Size: 3
+          Selectable: true
+          Size (Pixels): 2
+          Size (m): 0.02500000037252903
+          Style: Points
+          Topic: /livox/Pointcloud2
+          Unreliable: false
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Angle Tolerance: 0.10000000149011612
+          Class: rviz/Odometry
+          Covariance:
+            Orientation:
+              Alpha: 0.5
+              Color: 255; 255; 127
+              Color Style: Unique
+              Frame: Local
+              Offset: 1
+              Scale: 1
+              Value: true
+            Position:
+              Alpha: 0.30000001192092896
+              Color: 204; 51; 204
+              Scale: 1
+              Value: true
+            Value: true
+          Enabled: true
+          Keep: 100
+          Name: Gazebo odometry
+          Position Tolerance: 0.05000000074505806
+          Queue Size: 10
+          Shape:
+            Alpha: 0.699999988079071
+            Axes Length: 0.30000001192092896
+            Axes Radius: 0.019999999552965164
+            Color: 255; 255; 0
+            Head Length: 0.07000000029802322
+            Head Radius: 0.03999999910593033
+            Shaft Length: 0.20000000298023224
+            Shaft Radius: 0.019999999552965164
+            Value: Arrow
+          Topic: /Odometry_gazebo
+          Unreliable: false
+          Value: true
+      Enabled: true
+      Name: Robot sensing and state
+  Enabled: true
+  Global Options:
+    Background Color: 38; 38; 38
+    Default Light: true
+    Fixed Frame: map
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+    - Class: rviz/SetInitialPose
+      Theta std deviation: 0.2617993950843811
+      Topic: /initialpose
+      X std deviation: 0.5
+      Y std deviation: 0.5
+    - Class: rviz/SetGoal
+      Topic: /move_base_simple/goal
+    - Class: rviz/PublishPoint
+      Single click: true
+      Topic: /clicked_point
+  Value: true
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 47.68757629394531
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: -5.005050182342529
+        Y: 6.355800151824951
+        Z: 6.536065578460693
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.6250001192092896
+      Target Frame: map
+      Yaw: 3.125025749206543
+    Saved: ~
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 900
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000100000000000001610000031cfc0200000004fb000000100044006900730070006c00610079007301000000470000031c000000f100fffffffb0000001200530065006c0065006300740069006f006e00000001b70000006e0000006e00fffffffb0000001e0054006f006f006c002000500072006f0070006500720074006900650073000000023c000001270000006e00fffffffb0000000a0056006900650077007300000002a1000000c2000000c200ffffff000004740000031c00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Selection:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Views:
+    collapsed: false
+  Width: 1500
+  X: 251
+  Y: 117

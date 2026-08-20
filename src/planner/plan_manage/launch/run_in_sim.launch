@@ -1,0 +1,138 @@
+<launch>
+  <!-- size of map, change the size inflate x, y, z according to your application -->
+  <arg name="map_size_x" value="50.0"/>
+  <arg name="map_size_y" value="50.0"/>
+  <arg name="map_size_z" value="50.0"/>
+  <arg name="planning_horizon" default="2.5"/>
+  <arg name="max_vel" default="0.75"/>
+  <arg name="max_acc" default="0.5"/>
+  <arg name="collision_clearance" default="0.35"/>
+  <arg name="robot_clearance_x" default="0.25"/>
+  <arg name="robot_clearance_y" default="0.25"/>
+  <arg name="robot_clearance_z" default="0.15"/>
+
+  <!-- topic of your odometry such as VIO or LIO -->
+  <arg name="odom_topic" default="/Odometry_gazebo" />
+  <arg name="cloud_topic" default="/livox/Pointcloud2"/>
+  <arg name="bspline_topic" default="/planning/bspline"/>
+  <arg name="cmd_vel_topic" default="/cmd_vel"/>
+  <arg name="occupancy_topic" default="/grid_map/occupancy"/>
+  <arg name="occupancy_inflate_topic" default="/grid_map/occupancy_inflate"/>
+  <arg name="optimal_path_topic" default="/ego_planner_node/optimal_list"/>
+  <arg name="goal_topic" default="/ego_planner_node/goal_point"/>
+  <arg name="global_path_topic" default="/pct_path"/>
+  <!-- <node pkg="ego_planner" name="odometry_transform" type="odometry_transform" output="screen"/> -->
+
+  <!-- main algorithm params -->
+  <include file="$(find ego_planner)/launch/advanced_param.xml">
+
+    <arg name="map_size_x_" value="$(arg map_size_x)"/>
+    <arg name="map_size_y_" value="$(arg map_size_y)"/>
+    <arg name="map_size_z_" value="$(arg map_size_z)"/>
+    <arg name="odometry_topic" value="$(arg odom_topic)"/>
+    <arg name="lidar_frame_id" value="map"/>
+    <!-- <arg name="lidar_frame_id" value="camera_init"/> -->
+    <!-- Robot height -->
+
+    <!-- camera pose: transform of camera frame in the world frame -->
+    <!-- depth topic: depth image, 640x480 by default -->
+    <!-- don't set cloud_topic if you already set these ones! -->
+    <arg name="camera_pose_topic" value="/pcl_render_node/camera_pose"/>
+    <arg name="depth_topic" value="/pcl_render_node/depth"/>
+
+    <!-- topic of point cloud measurement, such as from LIDAR  -->
+    <!-- don't set camera pose and depth, if you already set this one! -->
+    <arg name="cloud_topic" value="$(arg cloud_topic)"/>
+    <!-- <arg name="cloud_topic" value="/cloud_registered"/> -->
+
+    <!-- intrinsic params of the depth camera -->
+    <arg name="cx" value="321.04638671875"/>
+    <arg name="cy" value="243.44969177246094"/>
+    <arg name="fx" value="387.229248046875"/>
+    <arg name="fy" value="387.229248046875"/>
+
+    <!-- maximum velocity and acceleration the drone will reach -->
+    <arg name="max_vel" value="$(arg max_vel)" />
+    <arg name="max_acc" value="$(arg max_acc)" />
+
+    <!--always set to 1.5 times grater than sensing horizen-->
+    <arg name="planning_horizon" value="$(arg planning_horizon)" />
+    <arg name="collision_clearance" value="$(arg collision_clearance)" />
+    <arg name="robot_clearance_x" value="$(arg robot_clearance_x)" />
+    <arg name="robot_clearance_y" value="$(arg robot_clearance_y)" />
+    <arg name="robot_clearance_z" value="$(arg robot_clearance_z)" />
+
+    <!-- 1: use 2D Nav Goal to select goal  -->
+    <!-- 2: use global waypoints below  -->
+    <!-- 3: use move_base path waypoints below  -->
+    <arg name="flight_type" value="3" />
+    <arg name="bspline_topic" value="$(arg bspline_topic)"/>
+    <arg name="occupancy_topic" value="$(arg occupancy_topic)"/>
+    <arg name="occupancy_inflate_topic" value="$(arg occupancy_inflate_topic)"/>
+    <arg name="optimal_path_topic" value="$(arg optimal_path_topic)"/>
+    <arg name="goal_topic" value="$(arg goal_topic)"/>
+    <arg name="global_path_topic" value="$(arg global_path_topic)"/>
+    
+    <!-- global waypoints -->
+    <!-- It generates a piecewise min-snap traj passing all waypoints -->
+    <arg name="point_num" value="5" />
+
+    <arg name="point0_x" value="-15.0" />
+    <arg name="point0_y" value="0.0" />
+    <arg name="point0_z" value="0.5" />
+
+    <arg name="point1_x" value="0.0" />
+    <arg name="point1_y" value="15.0" />
+    <arg name="point1_z" value="0.5" />
+
+    <arg name="point2_x" value="15.0" />
+    <arg name="point2_y" value="0.0" />
+    <arg name="point2_z" value="0.5" />
+
+    <arg name="point3_x" value="0.0" />
+    <arg name="point3_y" value="-15.0" />
+    <arg name="point3_z" value="0.5" />
+
+    <arg name="point4_x" value="-15.0" />
+    <arg name="point4_y" value="0.0" />
+    <arg name="point4_z" value="0.5" />
+    
+  </include>
+
+  <!-- trajectory server -->
+  <node pkg="ego_planner" name="traj_server" type="traj_server" output="screen">
+    <remap from="/planning/bspline" to="$(arg bspline_topic)"/>
+    <remap from="/cmd_vel" to="$(arg cmd_vel_topic)"/>
+    <remap from="/control_point_state_" to="/ego/control_point_state"/>
+    <remap from="/position_cmd" to="planning/pos_cmd"/>
+    <remap from="/odom_world" to="$(arg odom_topic)"/>
+    <param name="traj_server/time_forward" value="2" type="double"/>
+    <param name="odometry_topic" value="$(arg odom_topic)" type="string"/>
+    <param name="global_path_topic" value="$(arg global_path_topic)" type="string"/>
+    <param name="traj_server/kp_position" value="0.8" type="double"/>
+    <param name="traj_server/max_command_speed" value="$(arg max_vel)" type="double"/>
+    <param name="traj_server/odom_timeout" value="0.5" type="double"/>
+
+  </node>
+
+  <node pkg="waypoint_generator" name="waypoint_generator" type="waypoint_generator" output="screen">
+    <remap from="~odom" to="$(arg odom_topic)"/>        
+    <remap from="~goal" to="/move_base_simple/goal"/>
+    <remap from="~traj_start_trigger" to="/traj_start_trigger" />
+    <param name="waypoint_type" value="manual-lonely-waypoint"/>    
+  </node>
+
+  <!-- use simulator -->
+  <!-- <include file="$(find ego_planner)/launch/simulator.xml">
+    <arg name="map_size_x_" value="$(arg map_size_x)"/>
+    <arg name="map_size_y_" value="$(arg map_size_y)"/>
+    <arg name="map_size_z_" value="$(arg map_size_z)"/>
+    <arg name="c_num" value="200"/>
+    <arg name="p_num" value="200"/>
+    <arg name="min_dist" value="1.2"/>
+
+    <arg name="odometry_topic" value="$(arg odom_topic)" />
+  </include> -->
+
+
+</launch>

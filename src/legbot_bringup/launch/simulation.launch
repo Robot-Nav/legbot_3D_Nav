@@ -1,0 +1,17 @@
+<launch>
+  <arg name="gui" default="true"/>
+  <arg name="user_debug" default="false"/>
+  <arg name="robot_name" default="a1"/>
+  <arg name="publish_ground_truth" default="true"/>
+  <arg name="publish_zero_velocity" default="false"/>
+  <arg name="enable_joy" default="false"/>
+
+  <include file="$(find unitree_guide)/launch/gazeboSim.launch">
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="user_debug" value="$(arg user_debug)"/>
+    <arg name="rname" value="$(arg robot_name)"/>
+    <arg name="publish_ground_truth" value="$(arg publish_ground_truth)"/>
+    <arg name="publish_zero_velocity" value="$(arg publish_zero_velocity)"/>
+    <arg name="enable_joy" value="$(arg enable_joy)"/>
+  </include>
+</launch>

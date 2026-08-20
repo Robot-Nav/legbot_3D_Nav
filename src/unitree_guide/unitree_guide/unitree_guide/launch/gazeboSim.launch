@@ -1,0 +1,93 @@
+<launch>
+    <arg name="wname" default="Building"/>
+    <arg name="rname" default="a1"/>
+    <arg name="robot_path" value="(find $(arg rname)_description)"/>
+    <arg name="dollar" value="$"/>
+
+    <arg name="paused" default="true"/>
+    <arg name="use_sim_time" default="true"/>
+    <arg name="gui" default="true"/>
+    <arg name="headless" default="false"/>
+    <arg name="debug" default="false"/>
+    <!-- Debug mode will hung up the robot, use "true" or "false" to switch it. -->
+    <arg name="user_debug" default="false"/>
+    <arg name="publish_ground_truth" default="true"/>
+    <arg name="publish_zero_velocity" default="false"/>
+    <arg name="enable_joy" default="false"/>
+    
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(find unitree_gazebo)/worlds/$(arg wname).world"/>
+        <arg name="debug" value="$(arg debug)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="paused" value="$(arg paused)"/>
+        <!-- <arg name="use_sim_time" value="$(arg use_sim_time)"/> -->
+        <arg name="headless" value="$(arg headless)"/>
+    </include>
+
+    <!-- Load the URDF into the ROS Parameter Server -->
+    <param name="robot_description"
+           command="$(find xacro)/xacro --inorder '$(arg dollar)$(arg robot_path)/xacro/robot.xacro' 
+           DEBUG:=$(arg user_debug)"/>
+
+    <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
+    <!-- Set trunk and joint positions at startup -->
+    <!--<node pkg="gazebo_ros" type="spawn_model" name="urdf_spawner" respawn="false" output="screen"
+          args="-urdf -z 0.6 -Y 0.523 -model $(arg rname)_gazebo -param robot_description -unpause"/>-->
+    <node pkg="gazebo_ros" type="spawn_model" name="urdf_spawner" respawn="false" output="screen"
+              args="-urdf -z 0.6 -y 7 -x -5 -model $(arg rname)_gazebo -param robot_description -unpause"/>
+    
+    <group if="$(arg publish_ground_truth)">
+        <node pkg="unitree_guide" type="state_from_gazebo" name="state_from_gazebo" args="0 9 0 0 0 0" output="screen">
+            <param name="robot_name" value="$(arg rname)" />
+            <param name="publish_zero_velocity" value="$(arg publish_zero_velocity)" />
+        </node>
+    </group>
+
+    
+    <!-- Load joint controller configurations from YAML file to parameter server -->
+    <rosparam file="$(arg dollar)$(arg robot_path)/config/robot_control.yaml" command="load"/>
+
+    <!-- load the controllers -->
+    <node pkg="controller_manager" type="spawner" name="controller_spawner" respawn="false"
+           ns="/$(arg rname)_gazebo" args="joint_state_controller
+          FL_hip_controller FL_thigh_controller FL_calf_controller
+          FR_hip_controller FR_thigh_controller FR_calf_controller
+          RL_hip_controller RL_thigh_controller RL_calf_controller
+          RR_hip_controller RR_thigh_controller RR_calf_controller "/>
+
+    <!-- convert joint states to TF transforms for rviz, etc -->
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"
+          respawn="false" output="screen">
+        <remap from="/joint_states" to="/$(arg rname)_gazebo/joint_states"/>
+    </node>
+
+    
+    <!-- 启动 虚拟joy 节点 -->
+    <!-- <node name="virtual_joy" pkg="unitree_guide" type="virtual_joy.py" output="screen"/> -->
+
+
+    <!-- 启动 joy 节点 -->
+    <group if="$(arg enable_joy)">
+        <node name="joy_node" pkg="joy" type="joy_node" output="screen">
+            <!-- 设置参数，如手柄的设备路径，通常是 /dev/input/js0 -->
+            <param name="dev" value="/dev/input/js0" />
+            <!-- 设置手柄的频率 (Hz)，即每秒发布的频率 -->
+            <param name="deadzone" value="0.05" />
+            <param name="autorepeat_rate" value="20" />
+        </node>
+    </group>
+
+
+    <!-- load the parameter unitree_controller -->
+    <include file="$(find unitree_controller)/launch/set_ctrl.launch">
+        <arg name="rname" value="$(arg rname)"/>
+    </include>
+
+    <!-- launch 文件 -->
+    <!-- 如果是仿真环境，启动mid360的点云扫描转化enable_pointcloud2livox -->
+    <node pkg="unitree_guide" type="pointcloud2livox.py" name="pointcloud2livox" output="screen">
+        <param name="laser_blind" value="0.5" />
+        <param name="min_angle" value="-7"/>
+        <param name="max_angle" value="55"/>
+    </node>
+</launch>

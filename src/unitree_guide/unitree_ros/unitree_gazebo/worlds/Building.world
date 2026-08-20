@@ -1,0 +1,56 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+    <world name="tower">
+
+        <gui fullscreen='false'>
+        <camera name='user_camera'>
+            <pose>0.5 21 11 0 0.5 -1.6</pose>  <!-- x y z roll pitch yaw -->
+            <view_controller>orbit</view_controller>
+        </camera>
+        </gui>
+
+        <physics type="ode">
+        <max_step_size>0.001</max_step_size>
+        <real_time_factor>1</real_time_factor>
+        <real_time_update_rate>1000</real_time_update_rate>
+        <gravity>0 0 -9.81</gravity>
+            <ode>
+                <solver>
+                <type>quick</type>  
+                <iters>50</iters> 
+                <sor>1.3</sor>
+                </solver>  
+                <constraints>
+                <cfm>0.0</cfm>
+                <erp>0.2</erp>
+                <contact_max_correcting_vel>10.0</contact_max_correcting_vel>
+                <contact_surface_layer>0.001</contact_surface_layer>
+                </constraints>  
+            </ode>
+        </physics>
+
+        <scene>
+        <sky>
+            <clouds>
+                <speed>12</speed>
+            </clouds>
+        </sky>
+        </scene>
+        <!-- A global light source -->
+        <include>
+            <uri>model://sun</uri>
+        </include>
+        <!-- A ground plane -->
+        <include>
+            <uri>model://ground_plane</uri>
+        </include>
+        <!-- environment blocks, obstacles or stairs -->
+        <include>
+            <!-- <uri>/home/cjh/unitree_ws/src/unitree_guide/unitree_ros/unitree_gazebo/worlds/Building</uri> -->
+            <uri>model://Building</uri>
+            <!-- <uri>model:///home/cjh/unitree_ws/src/unitree_guide/unitree_ros/unitree_gazebo/worlds/Building</uri> -->
+            <pose>0 0 0 0 0 0</pose>   <!-- 模型位姿（x,y,z,r,p,y），默认放在原点 -->
+        </include>
+
+    </world>
+</sdf>

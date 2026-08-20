@@ -1,0 +1,31 @@
+# Catkin build products
+/build/
+/devel/
+/install/
+/logs/
+/.catkin_tools/
+/.catkin_workspace
+/.agents/
+/.codex/
+
+# Standalone PCT build products
+/src/PCT_planner/planner/lib/build/
+/src/PCT_planner/planner/lib/3rdparty/**/build/
+/src/PCT_planner/planner/lib/3rdparty/**/install/
+/src/PCT_planner/planner/lib/*.so
+/src/PCT_planner/planner/lib/*.so.*
+
+# Python and editor state
+__pycache__/
+*.py[cod]
+.idea/
+.vscode/
+*.log
+*~
+*.bak
+*.orig
+*.rej
+.DS_Store
+
+# FAST-LIO runtime map output
+/src/FAST_LIO/PCD/*.pcd

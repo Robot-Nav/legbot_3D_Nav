@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="example">
+
+
+  <!-- Base Footprint -->
+<link name="base_link" />
+
+
+  <xacro:macro name="LivoxMid360_IMU_Plantform" params="name:=mid360_imu_plantform parent_link_name:=base_link x:=0.0 y:=0.0 z:=0.3367 r:=0.0 p:=0.0 yaw:=0.0">
+      
+      <joint name="${name}_joint" type="fixed" >
+        <parent link="${parent_link_name}" />
+        <child link="link_platform" />
+        <origin xyz="${x} ${y} ${z}" rpy="${r} ${p} ${yaw}" />
+      </joint>
+
+      <!-- link_platform -->
+      <link name="link_platform" >
+        <visual>
+          <geometry>
+            <box size="0.15 0.1 0.1" />
+          </geometry>
+        </visual>
+        <collision>
+          <geometry>
+            <box size="0.15 0.1 0.1" />
+          </geometry>
+        </collision>
+      
+        <inertial>
+          <origin xyz="0 0 0"/>
+          <mass value="1.5"/>
+          <inertia ixx="0.1" ixy="0.0" ixz="0.0"
+                  iyy="0.1" iyz="0.0" 
+                  izz="0.1" />
+        </inertial>
+    
+      </link>
+
+      <gazebo reference="link_platform">
+        <turnGravityOff>false</turnGravityOff>
+      </gazebo>
+
+      <joint name="lidar_platform_joint" type="fixed" >
+        <parent link="link_platform" />
+        <child link="livox_base" />
+        <origin xyz="0 0 0.06" rpy="0 0 0" />
+      </joint>
+
+      <!--lidar -->
+      <xacro:include filename="$(find livox_laser_simulation)/urdf/livox_mid360.xacro"/>
+      <xacro:Livox_Mid40 name="livox"/>
+
+        <!--imu -->
+        <link name="imu_base_link">
+            <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry >
+                <box size="0.03 0.03 0.03" />
+            </geometry>
+            </visual>
+            <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry >
+                <box size="0.03 0.03 0.03" />
+            </geometry>
+            </collision>  
+            <inertial>
+                <mass value="1.5"/>
+                <inertia ixx="0.1" ixy="0.0" ixz="0.0" iyy="0.1" iyz="0.0" izz="0.1"/>
+            </inertial>
+        </link>
+
+        <gazebo reference="imu_base_link">
+            <material>Gazebo/Green</material>
+            <turnGravityOff>false</turnGravityOff>
+        </gazebo>
+
+        <joint name="imu_platform_joint" type="fixed">
+            <parent link="link_platform"/>
+            <child link="imu_base_link"/>
+            <origin xyz="0.05 0 0.065" rpy="0 0 0" />
+            <axis xyz="0 0 1" />
+        </joint>
+
+        <gazebo reference="imu_base_link">
+            <gravity>true</gravity>
+            <sensor name="imu_sensor" type="imu">
+                <always_on>true</always_on>
+                <update_rate>200</update_rate>
+                <visualize>true</visualize>
+                <topic>/livox/imu</topic>
+                <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+                    <topicName>/livox/imu</topicName>         
+                    <bodyName>imu_base_link</bodyName>
+                    <updateRateHZ>200.0</updateRateHZ>    
+                    <gaussianNoise>0.00329</gaussianNoise>   
+                    <xyzOffset>0 0 0</xyzOffset>     
+                    <rpyOffset>0 0 0</rpyOffset>
+                    <frameName>imu_base_link</frameName>        
+                </plugin>
+                <pose>0 0 0 0 0 0</pose>
+            </sensor>
+        </gazebo>
+
+  </xacro:macro>
+<xacro:LivoxMid360_IMU_Plantform/>
+</robot>

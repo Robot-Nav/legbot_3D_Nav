@@ -1,0 +1,68 @@
+<launch>
+  <arg name="local_planner" default="ego" doc="Launch-time selection: ego or scan"/>
+  <arg name="odom_topic" default="/Odometry_gazebo"/>
+  <arg name="cloud_topic" default="/livox/Pointcloud2"/>
+  <arg name="enable_collision_check" default="true"/>
+  <arg name="reference_mode" default="piecewise_linear"/>
+  <arg name="planning_horizon" default="2.0"/>
+  <arg name="z_projection_weight" default="8.0"/>
+  <arg name="ego_planning_horizon" default="2.5"/>
+  <arg name="ego_collision_clearance" default="0.35"/>
+  <arg name="ego_robot_clearance_x" default="0.25"/>
+  <arg name="ego_robot_clearance_y" default="0.25"/>
+  <arg name="ego_robot_clearance_z" default="0.15"/>
+  <!-- PCT publishes the robot reference height. Keep one explicit offset for
+       maps whose path z uses a different convention. -->
+  <arg name="reference_z_offset" default="0.0"/>
+
+  <group if="$(eval arg('local_planner') == 'ego')">
+    <node pkg="legbot_bringup" type="reference_path_transform"
+          name="reference_path_transform" output="screen">
+      <remap from="input" to="/pct_path"/>
+      <remap from="output" to="/local_planner/reference_path"/>
+      <param name="target_frame" value="map"/>
+      <param name="z_offset" value="$(arg reference_z_offset)"/>
+    </node>
+  </group>
+
+  <group if="$(eval arg('local_planner') == 'scan')">
+    <node pkg="legbot_bringup" type="reference_path_transform"
+          name="reference_path_transform" output="screen">
+      <remap from="input" to="/pct_path"/>
+      <remap from="output" to="/local_planner/reference_path"/>
+      <param name="target_frame" value="odom"/>
+      <param name="z_offset" value="$(arg reference_z_offset)"/>
+    </node>
+  </group>
+
+  <group if="$(eval arg('local_planner') == 'ego')">
+    <include file="$(find ego_planner)/launch/run_in_sim.launch">
+      <arg name="odom_topic" value="$(arg odom_topic)"/>
+      <arg name="cloud_topic" value="$(arg cloud_topic)"/>
+      <arg name="planning_horizon" value="$(arg ego_planning_horizon)"/>
+      <arg name="collision_clearance" value="$(arg ego_collision_clearance)"/>
+      <arg name="robot_clearance_x" value="$(arg ego_robot_clearance_x)"/>
+      <arg name="robot_clearance_y" value="$(arg ego_robot_clearance_y)"/>
+      <arg name="robot_clearance_z" value="$(arg ego_robot_clearance_z)"/>
+      <arg name="bspline_topic" value="/ego/planning/bspline"/>
+      <arg name="cmd_vel_topic" value="/cmd_vel"/>
+      <arg name="occupancy_topic" value="/local_planner/grid_map/occupancy"/>
+      <arg name="occupancy_inflate_topic" value="/local_planner/grid_map/occupancy_inflate"/>
+      <arg name="optimal_path_topic" value="/local_planner/optimal_path"/>
+      <arg name="goal_topic" value="/local_planner/goal"/>
+      <arg name="global_path_topic" value="/local_planner/reference_path"/>
+    </include>
+  </group>
+
+  <group if="$(eval arg('local_planner') == 'scan')">
+    <include file="$(find legbot_bringup)/launch/scan.launch">
+      <arg name="odom_topic" value="$(arg odom_topic)"/>
+      <arg name="cloud_topic" value="$(arg cloud_topic)"/>
+      <arg name="global_path_topic" value="/local_planner/reference_path"/>
+      <arg name="enable_collision_check" value="$(arg enable_collision_check)"/>
+      <arg name="reference_mode" value="$(arg reference_mode)"/>
+      <arg name="planning_horizon" value="$(arg planning_horizon)"/>
+      <arg name="z_projection_weight" value="$(arg z_projection_weight)"/>
+    </include>
+  </group>
+</launch>
