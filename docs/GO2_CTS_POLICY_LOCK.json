@@ -1,0 +1,19 @@
+{
+  "profile": "go2_cts",
+  "repository": "https://github.com/wty-yy/go2_rl_gym.git",
+  "commit": "30e74dc507bec7a642a8c98be26081f2c6f0822d",
+  "commit_date": "2026-07-06T12:25:44+08:00",
+  "source_path": "deploy/pre_train/go2/go2_cts_150k.pt",
+  "local_path": "src/go2_description/config/go2_cts/go2_cts_150k.pt",
+  "sha256": "3e102d0d5e69aebd25e071bcdd87637596561111f924b160ed5ceb0d5c70f400",
+  "license": "MIT with incorporated Unitree BSD-3-Clause notice",
+  "contract": {
+    "input": [1, 45],
+    "output": [1, 12],
+    "rate_hz": 50,
+    "command_scale": [3.0, 2.0, 0.5],
+    "joint_order": ["FL", "FR", "RL", "RR"],
+    "observations": ["ang_vel", "gravity_vec", "commands", "dof_pos", "dof_vel", "actions"],
+    "terrain_height_input": false
+  }
+}

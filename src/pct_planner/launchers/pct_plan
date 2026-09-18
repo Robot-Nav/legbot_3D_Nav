@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+installed_planner="${script_dir}/../../share/pct_planner/planner"
+if [[ -d "${installed_planner}/scripts" ]]; then
+  pct_planner_dir="$(cd "${installed_planner}" && pwd)"
+  pct_workspace_dir="$(cd "${script_dir}/../../../.." && pwd)"
+else
+  pct_planner_dir="$(cd "${script_dir}/../planner" && pwd)"
+  pct_workspace_dir="$(cd "${script_dir}/../../.." && pwd)"
+fi
+
+pct_lib_dir="${PCT_THIRDPARTY_LIB_DIR:-${pct_workspace_dir}/third_party/pct/install/lib}"
+pct_python="${PCT_PYTHON:-${pct_workspace_dir}/.venv-jazzy/bin/python3}"
+pct_native_lib_dir="${pct_planner_dir}/lib"
+if ! compgen -G "${pct_native_lib_dir}/a_star*.so" >/dev/null; then
+  pct_native_lib_dir="${pct_workspace_dir}/install/pct_planner/share/pct_planner/planner/lib"
+fi
+if [[ ! -x "${pct_python}" ]]; then
+  echo "[PCT preflight] Python 3.12 environment missing: ${pct_python}" >&2
+  exit 1
+fi
+pct_python="$(cd "$(dirname "${pct_python}")" && pwd)/$(basename "${pct_python}")"
+if [[ ! -f "${pct_lib_dir}/libmetis-gtsam.so" ]]; then
+  echo "[PCT preflight] libmetis-gtsam.so missing: ${pct_lib_dir}" >&2
+  echo "Set PCT_THIRDPARTY_LIB_DIR to the directory containing this library." >&2
+  exit 1
+fi
+pct_lib_dir="$(cd "${pct_lib_dir}" && pwd)"
+if ! compgen -G "${pct_native_lib_dir}/a_star*.so" >/dev/null; then
+  echo "[PCT preflight] Native PCT modules missing: ${pct_native_lib_dir}" >&2
+  echo "Build pct_planner before starting PCT." >&2
+  exit 1
+fi
+
+export LD_LIBRARY_PATH="${pct_lib_dir}:${pct_native_lib_dir}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+export PYTHONPATH="${pct_native_lib_dir}:${pct_planner_dir}:${pct_planner_dir}/scripts${PYTHONPATH:+:${PYTHONPATH}}"
+export PYTHONDONTWRITEBYTECODE=1
+
+"${pct_python}" -c '
+import ast
+import ctypes
+from pathlib import Path
+import sys
+if sys.version_info[:2] != (3, 12):
+    raise SystemExit("[PCT preflight] Native PCT modules require Python 3.12")
+ctypes.CDLL("libmetis-gtsam.so")
+from lib import a_star, ele_planner, traj_opt, py_map_manager
+import open3d, cupy, rclpy
+from planner_wrapper import TomogramPlanner
+from interactive_markers.interactive_marker_server import InteractiveMarkerServer
+ast.parse(Path(sys.argv[1]).read_text(encoding="utf-8"))
+print("[PCT preflight] Python and native libraries OK", flush=True)
+' "${pct_planner_dir}/scripts/plan.py"
+
+if [[ "${1:-}" == "--check-libraries" ]]; then
+  exit 0
+fi
+
+cd "${pct_planner_dir}/scripts"
+exec "${pct_python}" "${pct_planner_dir}/scripts/plan.py" "$@"

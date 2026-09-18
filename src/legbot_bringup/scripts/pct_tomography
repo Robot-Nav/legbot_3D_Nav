@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Launch PCT tomography with its dedicated Conda interpreter.
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+workspace_dir="$(cd "${script_dir}/../../.." && pwd)"
+tomography_dir="${workspace_dir}/src/PCT_planner/tomography/scripts"
+pct_python="${PCT_PYTHON:-python3}"
+
+cd "${tomography_dir}"
+exec "${pct_python}" \
+  "${tomography_dir}/tomography.py" "$@"

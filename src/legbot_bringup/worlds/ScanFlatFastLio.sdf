@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <world name="tower">
+    <physics name="physics" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>0.5</real_time_factor>
+    </physics>
+    <gravity>0 0 -9.81</gravity>
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <light name="sun" type="directional">
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <direction>-0.5 0.1 -0.9</direction>
+      <cast_shadows>true</cast_shadows>
+    </light>
+
+    <model name="flat_ground">
+      <static>true</static>
+      <link name="ground">
+        <collision name="collision"><geometry><plane><normal>0 0 1</normal><size>40 24</size></plane></geometry></collision>
+        <visual name="visual"><geometry><plane><normal>0 0 1</normal><size>40 24</size></plane></geometry><material><diffuse>0.55 0.58 0.60 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- The floor is completely level. These vertical surfaces constrain
+         FAST-LIO and are also physical obstacles for SCAN to avoid. -->
+    <model name="north_wall"><static>true</static><pose>2 6.0 1.0 0 0 0</pose><link name="wall"><collision name="collision"><geometry><box><size>22 0.15 2</size></box></geometry></collision><visual name="visual"><geometry><box><size>22 0.15 2</size></box></geometry><material><diffuse>0.36 0.42 0.48 1</diffuse></material></visual></link></model>
+    <model name="south_wall"><static>true</static><pose>2 -6.0 1.0 0 0 0</pose><link name="wall"><collision name="collision"><geometry><box><size>22 0.15 2</size></box></geometry></collision><visual name="visual"><geometry><box><size>22 0.15 2</size></box></geometry><material><diffuse>0.36 0.42 0.48 1</diffuse></material></visual></link></model>
+    <model name="west_wall"><static>true</static><pose>-9.0 0 1.0 0 0 0</pose><link name="wall"><collision name="collision"><geometry><box><size>0.15 12 2</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.15 12 2</size></box></geometry><material><diffuse>0.36 0.42 0.48 1</diffuse></material></visual></link></model>
+    <model name="east_wall"><static>true</static><pose>13.0 0 1.0 0 0 0</pose><link name="wall"><collision name="collision"><geometry><box><size>0.15 12 2</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.15 12 2</size></box></geometry><material><diffuse>0.36 0.42 0.48 1</diffuse></material></visual></link></model>
+
+    <!-- Asymmetric perimeter features give FAST-LIO non-coplanar surfaces,
+         corners and height changes. They stay outside the central navigation
+         corridor and are deliberately different on the two sides. -->
+    <model name="localization_west_beacon">
+      <static>true</static><pose>-7.4 -3.8 0 0 0 0.20</pose>
+      <link name="base">
+        <pose>0 0 0.18 0 0 0</pose>
+        <collision name="collision"><geometry><box><size>0.80 0.55 0.36</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.80 0.55 0.36</size></box></geometry><material><diffuse>0.25 0.72 0.42 1</diffuse></material></visual>
+      </link>
+      <link name="post">
+        <pose>0.18 0 1.05 0 0 0</pose>
+        <collision name="collision"><geometry><box><size>0.28 0.28 1.75</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.28 0.28 1.75</size></box></geometry><material><diffuse>0.25 0.72 0.42 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <model name="localization_north_gate">
+      <static>true</static><pose>-5.8 4.75 0 0 0 -0.12</pose>
+      <link name="left"><pose>-0.65 0 0.85 0 0 0</pose><collision name="collision"><geometry><box><size>0.24 0.32 1.70</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.24 0.32 1.70</size></box></geometry><material><diffuse>0.72 0.35 0.18 1</diffuse></material></visual></link>
+      <link name="right"><pose>0.65 0 0.55 0 0 0</pose><collision name="collision"><geometry><box><size>0.36 0.32 1.10</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.36 0.32 1.10</size></box></geometry><material><diffuse>0.72 0.35 0.18 1</diffuse></material></visual></link>
+      <link name="beam"><pose>0 0 1.58 0 0 0</pose><collision name="collision"><geometry><box><size>1.55 0.32 0.22</size></box></geometry></collision><visual name="visual"><geometry><box><size>1.55 0.32 0.22</size></box></geometry><material><diffuse>0.72 0.35 0.18 1</diffuse></material></visual></link>
+    </model>
+
+    <model name="localization_south_steps">
+      <static>true</static><pose>-3.8 -4.75 0 0 0 0.38</pose>
+      <link name="step_low"><pose>-0.55 0 0.12 0 0 0</pose><collision name="collision"><geometry><box><size>0.90 0.90 0.24</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.90 0.90 0.24</size></box></geometry><material><diffuse>0.25 0.48 0.82 1</diffuse></material></visual></link>
+      <link name="step_mid"><pose>0.20 0 0.26 0 0 0</pose><collision name="collision"><geometry><box><size>0.65 0.75 0.52</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.65 0.75 0.52</size></box></geometry><material><diffuse>0.25 0.48 0.82 1</diffuse></material></visual></link>
+      <link name="step_high"><pose>0.72 0 0.43 0 0 0</pose><collision name="collision"><geometry><box><size>0.38 0.55 0.86</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.38 0.55 0.86</size></box></geometry><material><diffuse>0.25 0.48 0.82 1</diffuse></material></visual></link>
+    </model>
+
+    <model name="localization_north_slanted_panel">
+      <static>true</static><pose>-1.2 4.75 0.82 0.20 0.10 0.45</pose>
+      <link name="panel"><collision name="collision"><geometry><box><size>1.35 0.18 1.45</size></box></geometry></collision><visual name="visual"><geometry><box><size>1.35 0.18 1.45</size></box></geometry><material><diffuse>0.70 0.22 0.58 1</diffuse></material></visual></link>
+    </model>
+
+    <model name="localization_south_towers">
+      <static>true</static><pose>1.2 -4.65 0 0 0 -0.25</pose>
+      <link name="short"><pose>-0.48 0 0.42 0 0 0</pose><collision name="collision"><geometry><cylinder><radius>0.26</radius><length>0.84</length></cylinder></geometry></collision><visual name="visual"><geometry><cylinder><radius>0.26</radius><length>0.84</length></cylinder></geometry><material><diffuse>0.88 0.70 0.12 1</diffuse></material></visual></link>
+      <link name="tall"><pose>0.42 0.10 0.78 0 0 0</pose><collision name="collision"><geometry><cylinder><radius>0.19</radius><length>1.56</length></cylinder></geometry></collision><visual name="visual"><geometry><cylinder><radius>0.19</radius><length>1.56</length></cylinder></geometry><material><diffuse>0.88 0.70 0.12 1</diffuse></material></visual></link>
+    </model>
+
+    <model name="localization_north_arch">
+      <static>true</static><pose>3.8 4.70 0 0 0 0.18</pose>
+      <link name="left"><pose>-0.55 0 0.62 0 0 0</pose><collision name="collision"><geometry><box><size>0.22 0.42 1.24</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.22 0.42 1.24</size></box></geometry><material><diffuse>0.16 0.68 0.72 1</diffuse></material></visual></link>
+      <link name="right"><pose>0.55 0 0.92 0 0 0</pose><collision name="collision"><geometry><box><size>0.22 0.42 1.84</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.22 0.42 1.84</size></box></geometry><material><diffuse>0.16 0.68 0.72 1</diffuse></material></visual></link>
+      <link name="top"><pose>0 0 1.34 0 0 0.10</pose><collision name="collision"><geometry><box><size>1.28 0.42 0.20</size></box></geometry></collision><visual name="visual"><geometry><box><size>1.28 0.42 0.20</size></box></geometry><material><diffuse>0.16 0.68 0.72 1</diffuse></material></visual></link>
+    </model>
+
+    <model name="localization_south_ramp">
+      <static>true</static><pose>6.4 -4.60 0.27 0 0.20 0.62</pose>
+      <link name="ramp"><collision name="collision"><geometry><box><size>1.80 1.00 0.16</size></box></geometry></collision><visual name="visual"><geometry><box><size>1.80 1.00 0.16</size></box></geometry><material><diffuse>0.78 0.36 0.10 1</diffuse></material></visual></link>
+    </model>
+
+    <model name="localization_east_stack">
+      <static>true</static><pose>10.2 4.35 0 0 0 -0.42</pose>
+      <link name="wide"><pose>-0.35 0 0.20 0 0 0</pose><collision name="collision"><geometry><box><size>1.20 0.80 0.40</size></box></geometry></collision><visual name="visual"><geometry><box><size>1.20 0.80 0.40</size></box></geometry><material><diffuse>0.42 0.30 0.78 1</diffuse></material></visual></link>
+      <link name="middle"><pose>0.20 0.05 0.57 0 0 0.20</pose><collision name="collision"><geometry><box><size>0.72 0.58 0.74</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.72 0.58 0.74</size></box></geometry><material><diffuse>0.42 0.30 0.78 1</diffuse></material></visual></link>
+      <link name="top"><pose>0.42 0.02 1.06 0.18 0 0</pose><collision name="collision"><geometry><box><size>0.38 0.42 0.52</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.38 0.42 0.52</size></box></geometry><material><diffuse>0.42 0.30 0.78 1</diffuse></material></visual></link>
+    </model>
+
+    <model name="avoidance_block_1">
+      <!-- This box overlaps the straight centreline after the GO2 footprint
+           is inflated, while leaving a moderate side-step corridor for a
+           locomotion policy that supports lateral velocity commands. -->
+      <static>true</static><pose>-1.00 0.35 0.60 0 0 0</pose>
+      <link name="block"><collision name="collision"><geometry><box><size>0.55 0.50 1.20</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.55 0.50 1.20</size></box></geometry><material><diffuse>0.85 0.18 0.12 1</diffuse></material></visual></link>
+    </model>
+    <model name="avoidance_block_2">
+      <static>true</static><pose>3.0 -0.75 0.60 0 0 0</pose>
+      <link name="block"><collision name="collision"><geometry><box><size>0.65 1.10 1.20</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.65 1.10 1.20</size></box></geometry><material><diffuse>0.12 0.40 0.82 1</diffuse></material></visual></link>
+    </model>
+    <model name="avoidance_block_3">
+      <static>true</static><pose>7.0 0.65 0.60 0 0 0</pose>
+      <link name="block"><collision name="collision"><geometry><box><size>0.65 1.10 1.20</size></box></geometry></collision><visual name="visual"><geometry><box><size>0.65 1.10 1.20</size></box></geometry><material><diffuse>0.88 0.62 0.10 1</diffuse></material></visual></link>
+    </model>
+  </world>
+</sdf>

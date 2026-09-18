@@ -1,0 +1,115 @@
+#!/usr/bin/python3
+"""Convert body-frame Twist to upstream GO2 inputs; modes remain explicitly commanded."""
+import math
+import time
+import rclpy
+from rclpy.executors import ExternalShutdownException
+try:
+    from rclpy.exceptions import RCLError
+except ImportError:  # Jazzy exposes the underlying shutdown error as RuntimeError.
+    RCLError = RuntimeError
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+from std_msgs.msg import Int32
+from nav_msgs.msg import Odometry
+from sensor_msgs.msg import PointCloud2
+from rclpy.qos import qos_profile_sensor_data
+from control_input_msgs.msg import Inputs
+
+
+class CommandAdapter(Node):
+    def __init__(self):
+        super().__init__('go2_command_adapter')
+        self.command_timeout = self.declare_parameter('command_timeout', 0.5).value
+        self.navigation_timeout = self.declare_parameter('navigation_timeout', 0.5).value
+        self.limits = [self.declare_parameter(k, v).value for k, v in
+                       [('max_vx', 0.75), ('max_vy', 0.25), ('max_yaw_rate', 1.0)]]
+        self.require_navigation_data = self.declare_parameter('require_navigation_data', True).value
+        self.last_odom = self.last_cloud = float('-inf')
+        self.odom_topic = self.declare_parameter('odom_topic', '/fast_lio/odometry_base').value
+        self.cloud_topic = self.declare_parameter('cloud_topic', '/fast_lio/cloud_registered').value
+        self.create_subscription(Odometry, self.odom_topic, self.odom, qos_profile_sensor_data)
+        self.create_subscription(PointCloud2, self.cloud_topic, self.cloud, qos_profile_sensor_data)
+        self.last_velocity = float('-inf')
+        self.last_mode = float('-inf')
+        self.velocity = [0., 0., 0.]
+        self.mode = 0
+        self.last_gate_log = float('-inf')
+        self.pub = self.create_publisher(Inputs, '/control_input', 10)
+        self.create_subscription(Twist, '/cmd_vel', self.command, 10)
+        self.create_subscription(Int32, '/go2/control_mode', self.control_mode, 10)
+        self.create_timer(0.02, self.publish)
+        self.get_logger().info(
+            'GO2 command safety inputs: odometry=%s cloud=%s' %
+            (self.odom_topic, self.cloud_topic))
+
+    def odom(self, msg):
+        p = msg.pose.pose.position
+        q = msg.pose.pose.orientation
+        values = (p.x, p.y, p.z, q.x, q.y, q.z, q.w)
+        q_norm = math.sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w)
+        if (msg.header.frame_id and all(math.isfinite(v) for v in values)
+                and max(abs(p.x), abs(p.y), abs(p.z)) <= 10000.0
+                and 0.5 <= q_norm <= 1.5):
+            self.last_odom = time.monotonic()
+
+    def cloud(self, msg):
+        if msg.header.frame_id and msg.width * msg.height > 0 and msg.data:
+            self.last_cloud = time.monotonic()
+
+    def command(self, msg):
+        values = [msg.linear.x, msg.linear.y, msg.angular.z]
+        if not all(math.isfinite(v) for v in values):
+            self.velocity = [0., 0., 0.]
+            self.last_velocity = float('-inf')
+            return
+        self.velocity = [max(-limit, min(limit, v)) for v, limit in zip(values, self.limits)]
+        self.last_velocity = time.monotonic()
+
+    def control_mode(self, msg):
+        if msg.data in (1, 2, 3):
+            self.mode = msg.data
+            self.last_mode = time.monotonic()
+
+    def publish(self):
+        now = time.monotonic()
+        vx, vy, wz = self.velocity if now-self.last_velocity <= self.command_timeout else (0., 0., 0.)
+        if self.require_navigation_data and (
+                now-self.last_odom > self.navigation_timeout or
+                now-self.last_cloud > self.navigation_timeout):
+            if any(abs(value) > 1e-4 for value in (vx, vy, wz)) and now-self.last_gate_log >= 2.0:
+                self.last_gate_log = now
+                self.get_logger().warning(
+                    'Suppressing nonzero command: odometry_fresh=%s cloud_fresh=%s' %
+                    (now-self.last_odom <= self.navigation_timeout,
+                     now-self.last_cloud <= self.navigation_timeout))
+            vx, vy, wz = 0., 0., 0.
+        msg = Inputs()
+        msg.ly, msg.lx, msg.rx = float(vx), float(-vy), float(-wz)
+        msg.command = self.mode if now-self.last_mode < 0.1 else 0
+        self.pub.publish(msg)
+
+
+def main():
+    rclpy.init()
+    node = CommandAdapter()
+    try:
+        rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException, RCLError):
+        pass
+    finally:
+        try:
+            if rclpy.ok():
+                node.velocity = [0., 0., 0.]
+                node.mode = 0
+                node.publish()
+            node.destroy_node()
+            if rclpy.ok():
+                rclpy.shutdown()
+        except (KeyboardInterrupt, ExternalShutdownException, RCLError, RuntimeError):
+            # Another launch process can finish the shared shutdown context first.
+            pass
+
+
+if __name__ == '__main__':
+    main()

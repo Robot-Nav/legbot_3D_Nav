@@ -1,0 +1,167 @@
+#!/usr/bin/python3
+"""Publish a deterministic world-frame cloud for headless SCAN experiments."""
+import math
+
+import rclpy
+from nav_msgs.msg import Odometry
+from rclpy.executors import ExternalShutdownException
+from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import PointCloud2
+from sensor_msgs_py import point_cloud2
+from std_msgs.msg import Header
+
+
+def samples(low, high, step):
+    count = max(0, int(round((high - low) / step)))
+    return [low + index * step for index in range(count + 1)]
+
+
+class StairCloudSim(Node):
+    def __init__(self):
+        super().__init__('stair_cloud_sim')
+        self.frame_id = self.declare_parameter('frame_id', 'odom').value
+        self.odom_topic = self.declare_parameter('odom_topic', '/Odometry_gazebo').value
+        self.cloud_topic = self.declare_parameter('cloud_topic', '/livox/points_world').value
+        self.sensor_pose_topic = self.declare_parameter('sensor_pose_topic', '/go2/lidar_pose').value
+        self.sensor_offset = (
+            float(self.declare_parameter('sensor_x', 0.15).value),
+            float(self.declare_parameter('sensor_y', 0.0).value),
+            float(self.declare_parameter('sensor_z', 0.15).value),
+        )
+        self.max_range = float(self.declare_parameter('max_range', 5.0).value)
+        self.scene_type = self.declare_parameter('scene_type', 'stairs').value
+        # A quadruped elevation planner treats stair treads as terrain.  The
+        # vertical risers remain in Gazebo's collision geometry, but feeding
+        # them to SCAN as ordinary 3-D obstacles makes the base-centre state
+        # collide with every next step and prevents replanning while climbing.
+        self.include_risers = bool(self.declare_parameter('include_risers', False).value)
+        self.points = self.build_scene(self.scene_type, self.include_risers)
+        self.last_odom = None
+        self.cloud_pub = self.create_publisher(PointCloud2, self.cloud_topic, qos_profile_sensor_data)
+        self.pose_pub = self.create_publisher(Odometry, self.sensor_pose_topic, qos_profile_sensor_data)
+        self.create_subscription(Odometry, self.odom_topic, self.odom_callback, qos_profile_sensor_data)
+        self.create_timer(0.1, self.publish_scene)
+        self.get_logger().info(
+            'Prepared %d deterministic %s surface points' % (len(self.points), self.scene_type))
+
+    @staticmethod
+    def build_scene(scene_type, include_risers=False):
+        points = []
+        xy_step = 0.10
+        z_step = 0.05
+
+        if scene_type == 'flat':
+            for x in samples(-6.0, 6.0, xy_step):
+                for y in samples(-4.0, 4.0, xy_step):
+                    points.append((x, y, 0.0))
+            return points
+        if scene_type not in ('stairs', 'stairs_obstacles'):
+            raise ValueError("scene_type must be 'flat', 'stairs', or 'stairs_obstacles'")
+
+        # Ground in front of the stairs and on both sides. Do not add hidden
+        # ground underneath the solid staircase or top platform.
+        for x in samples(-6.0, 0.0, xy_step):
+            for y in samples(-3.0, 3.0, xy_step):
+                points.append((x, y, 0.0))
+        for x in samples(0.0, 5.0, xy_step):
+            for y in samples(-3.0, -0.9, xy_step) + samples(0.9, 3.0, xy_step):
+                points.append((x, y, 0.0))
+
+        # Eight 0.10 m risers and 0.30 m treads, matching the SDF collision model.
+        for index in range(1, 9):
+            x0 = (index - 1) * 0.30
+            x1 = index * 0.30
+            top = index * 0.10
+            previous_top = (index - 1) * 0.10
+            for x in samples(x0, x1, xy_step):
+                for y in samples(-0.8, 0.8, xy_step):
+                    points.append((x, y, top))
+            if include_risers:
+                for y in samples(-0.8, 0.8, xy_step):
+                    for z in samples(previous_top, top, z_step):
+                        points.append((x0, y, z))
+
+        # 2.6 x 2.4 m landing, from x=2.4 to x=5.0 at z=0.8 m.
+        for x in samples(2.4, 5.0, xy_step):
+            for y in samples(-1.2, 1.2, xy_step):
+                points.append((x, y, 0.8))
+        for y in samples(-1.2, 1.2, xy_step):
+            for z in samples(0.0, 0.8, z_step):
+                points.append((5.0, y, z))
+
+        if scene_type == 'stairs_obstacles':
+            # This post blocks the straight approach to waypoint 0.  Its
+            # surfaces match ScanStairsObstacles.sdf, so SCAN must route the
+            # robot around physical collision geometry visible in Gazebo.
+            x0, x1 = -0.62, -0.34
+            y0, y1 = 0.14, 0.30
+            z0, z1 = 0.0, 0.70
+            for x in samples(x0, x1, xy_step):
+                for y in samples(y0, y1, xy_step):
+                    points.extend(((x, y, z0), (x, y, z1)))
+            for x in samples(x0, x1, xy_step):
+                for z in samples(z0, z1, z_step):
+                    points.extend(((x, y0, z), (x, y1, z)))
+            for y in samples(y0, y1, xy_step):
+                for z in samples(z0, z1, z_step):
+                    points.extend(((x0, y, z), (x1, y, z)))
+        return points
+
+    def odom_callback(self, message):
+        self.last_odom = message
+
+    @staticmethod
+    def rotate_vector(quaternion, vector):
+        x, y, z, w = quaternion.x, quaternion.y, quaternion.z, quaternion.w
+        vx, vy, vz = vector
+        # Quaternion-vector multiplication in expanded form.
+        tx = 2.0 * (y * vz - z * vy)
+        ty = 2.0 * (z * vx - x * vz)
+        tz = 2.0 * (x * vy - y * vx)
+        return (
+            vx + w * tx + y * tz - z * ty,
+            vy + w * ty + z * tx - x * tz,
+            vz + w * tz + x * ty - y * tx,
+        )
+
+    def publish_scene(self):
+        if self.last_odom is None:
+            return
+        odom = self.last_odom
+        position = odom.pose.pose.position
+        orientation = odom.pose.pose.orientation
+        offset = self.rotate_vector(orientation, self.sensor_offset)
+        sensor = (position.x + offset[0], position.y + offset[1], position.z + offset[2])
+
+        radius_squared = self.max_range * self.max_range
+        visible = [point for point in self.points
+                   if (point[0] - sensor[0]) ** 2 + (point[1] - sensor[1]) ** 2
+                   + (point[2] - sensor[2]) ** 2 <= radius_squared]
+        stamp = self.get_clock().now().to_msg()
+        header = Header(stamp=stamp, frame_id=self.frame_id)
+        self.cloud_pub.publish(point_cloud2.create_cloud_xyz32(header, visible))
+
+        pose = Odometry()
+        pose.header = header
+        pose.child_frame_id = 'livox_link'
+        pose.pose.pose.position.x, pose.pose.pose.position.y, pose.pose.pose.position.z = sensor
+        pose.pose.pose.orientation = orientation
+        self.pose_pub.publish(pose)
+
+
+def main():
+    rclpy.init()
+    node = StairCloudSim()
+    try:
+        rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

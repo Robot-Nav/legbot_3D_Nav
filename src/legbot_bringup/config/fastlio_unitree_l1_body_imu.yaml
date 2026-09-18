@@ -1,0 +1,49 @@
+/**:
+  ros__parameters:
+    feature_extract_enable: false
+    point_filter_num: 2
+    max_iteration: 3
+    filter_size_surf: 0.15
+    filter_size_map: 0.15
+    cube_side_length: 200.0
+    runtime_pos_log_enable: false
+    map_file_path: ./test.pcd
+    common:
+      lid_topic: /unitree/lidar
+      # Fallback for a GO2 whose L1 internal IMU fails the preflight check.
+      imu_topic: /imu_sensor_broadcaster/imu
+      time_sync_en: false
+      time_offset_lidar_to_imu: 0.0
+      world_frame: odom
+      body_frame: imu_link
+    preprocess:
+      lidar_type: 5
+      scan_line: 18
+      blind: 0.50
+      timestamp_unit: 0
+      scan_rate: 10
+    mapping:
+      acc_cov: 0.1
+      gyr_cov: 0.1
+      b_acc_cov: 0.0001
+      b_gyr_cov: 0.0001
+      fov_degree: 360.0
+      det_range: 30.0
+      extrinsic_est_en: false
+      # L1 lidar pose in the official GO2 body-IMU frame. This fallback also
+      # depends on the two DDS streams having sufficiently aligned clocks.
+      extrinsic_T: [0.31502, 0.0, -0.089145]
+      extrinsic_R: [-0.965502, 0.0, 0.260397,
+                    0.0, 1.0, 0.0,
+                    -0.260397, 0.0, -0.965502]
+    publish:
+      path_en: true
+      effect_map_en: false
+      map_en: true
+      scan_publish_en: true
+      dense_publish_en: false
+      scan_bodyframe_pub_en: true
+      tf_en: false
+    pcd_save:
+      pcd_save_en: false
+      interval: -1

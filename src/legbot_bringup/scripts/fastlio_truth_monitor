@@ -1,0 +1,133 @@
+#!/usr/bin/python3
+"""Measure FAST-LIO drift against Gazebo truth without feeding truth to control."""
+import math
+
+import rclpy
+from nav_msgs.msg import Odometry
+from rclpy.executors import ExternalShutdownException
+from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+
+
+def yaw_from_quaternion(q):
+    return math.atan2(
+        2.0 * (q.w * q.z + q.x * q.y),
+        1.0 - 2.0 * (q.y * q.y + q.z * q.z))
+
+
+def wrap_angle(value):
+    return math.atan2(math.sin(value), math.cos(value))
+
+
+class FastLioTruthMonitor(Node):
+    def __init__(self):
+        super().__init__('fastlio_truth_monitor')
+        self.lio_topic = self.declare_parameter(
+            'fastlio_topic', '/fast_lio/odometry_base').value
+        self.truth_topic = self.declare_parameter(
+            'truth_topic', '/Odometry_gazebo').value
+        self.max_pair_age = float(self.declare_parameter(
+            'max_pair_age', 0.15).value)
+        self.log_period = float(self.declare_parameter(
+            'log_period', 2.0).value)
+        self.lio = None
+        self.truth = None
+        self.origin = None
+        self.last_sampled_lio_stamp = None
+        self.samples = 0
+        self.sum_xy_sq = 0.0
+        self.sum_z_sq = 0.0
+        self.max_xy = 0.0
+        self.max_abs_z = 0.0
+        self.latest = None
+        self.create_subscription(
+            Odometry, self.lio_topic, self.on_lio, qos_profile_sensor_data)
+        self.create_subscription(
+            Odometry, self.truth_topic, self.on_truth, qos_profile_sensor_data)
+        self.create_timer(self.log_period, self.report)
+        self.get_logger().info(
+            'FAST-LIO diagnostic only: compare %s with %s; Gazebo truth is not used for control.'
+            % (self.lio_topic, self.truth_topic))
+
+    @staticmethod
+    def stamp_seconds(msg):
+        return msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+
+    @staticmethod
+    def pose(msg):
+        p = msg.pose.pose.position
+        return p.x, p.y, p.z, yaw_from_quaternion(msg.pose.pose.orientation)
+
+    def on_lio(self, msg):
+        self.lio = msg
+        self.sample()
+
+    def on_truth(self, msg):
+        self.truth = msg
+        self.sample()
+
+    def sample(self):
+        if self.lio is None or self.truth is None:
+            return
+        if abs(self.stamp_seconds(self.lio) - self.stamp_seconds(self.truth)) > self.max_pair_age:
+            return
+        lio_stamp = self.stamp_seconds(self.lio)
+        if lio_stamp == self.last_sampled_lio_stamp:
+            return
+        self.last_sampled_lio_stamp = lio_stamp
+        lio = self.pose(self.lio)
+        truth = self.pose(self.truth)
+        if self.origin is None:
+            self.origin = (lio, truth)
+            self.get_logger().info('FAST-LIO/truth initial poses aligned; drift accumulation started.')
+            return
+        lio0, truth0 = self.origin
+        heading_offset = wrap_angle(truth0[3] - lio0[3])
+        c = math.cos(heading_offset)
+        s = math.sin(heading_offset)
+        dx = lio[0] - lio0[0]
+        dy = lio[1] - lio0[1]
+        aligned_x = truth0[0] + c * dx - s * dy
+        aligned_y = truth0[1] + s * dx + c * dy
+        aligned_z = truth0[2] + lio[2] - lio0[2]
+        xy_error = math.hypot(aligned_x - truth[0], aligned_y - truth[1])
+        z_error = aligned_z - truth[2]
+        yaw_error = wrap_angle(lio[3] + heading_offset - truth[3])
+        self.samples += 1
+        self.sum_xy_sq += xy_error * xy_error
+        self.sum_z_sq += z_error * z_error
+        self.max_xy = max(self.max_xy, xy_error)
+        self.max_abs_z = max(self.max_abs_z, abs(z_error))
+        self.latest = (xy_error, z_error, yaw_error)
+
+    def report(self):
+        if self.latest is None or self.samples == 0:
+            self.get_logger().warning(
+                'Waiting for time-aligned FAST-LIO and Gazebo odometry samples...',
+                throttle_duration_sec=5.0)
+            return
+        xy, z, yaw = self.latest
+        self.get_logger().info(
+            '[FAST-LIO error] current: xy=%.3f m z=%+.3f m yaw=%+.2f deg; '
+            'RMSE: xy=%.3f m z=%.3f m; max: xy=%.3f m |z|=%.3f m; n=%d'
+            % (xy, z, math.degrees(yaw),
+               math.sqrt(self.sum_xy_sq / self.samples),
+               math.sqrt(self.sum_z_sq / self.samples),
+               self.max_xy, self.max_abs_z, self.samples))
+
+
+def main():
+    rclpy.init()
+    node = FastLioTruthMonitor()
+    try:
+        rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,26 @@
+{
+  "repository": "https://github.com/shivam-sood00/unitree-sim2real",
+  "commit": "f7444b102351fb7414b748f4783e804a81e66f1b",
+  "source_path": "RL_policy_runner/policies/individual_gaits/trot_stairs.pt",
+  "source_contract": {
+    "input": ["batch", 42],
+    "output": ["batch", 12],
+    "control_hz": 50,
+    "observation_order": ["projected_gravity", "commands", "joint_position_error", "joint_velocity", "previous_action"]
+  },
+  "conversion": {
+    "torch": "2.5.0+cpu",
+    "onnx": "1.21.0",
+    "opset": 11
+  },
+  "runtime": {
+    "name": "Microsoft ONNX Runtime CPU",
+    "version": "1.23.2",
+    "archive_sha256": "1fa4dcaef22f6f7d5cd81b28c2800414350c10116f5fdd46a2160082551c5f9b"
+  },
+  "files": {
+    "trot_stairs.pt": "c4063a41433be04502ceb7c7de75a298d9d388b61bfb556959057230075d609d",
+    "trot_stairs.onnx": "11932c40eb9bd1ed328323d4eb9400b09d53ed904e490d49311c9937d023b9f0"
+  },
+  "license_status": "The selected upstream commit has an MIT badge in README but no LICENSE file; do not represent the weight as OSI-licensed without author confirmation."
+}

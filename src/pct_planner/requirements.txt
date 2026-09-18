@@ -1,0 +1,3 @@
+# Ubuntu 24.04 / Python 3.12; NumPy/SciPy supplied by system packages.
+open3d==0.19.0
+cupy-cuda12x==13.6.0

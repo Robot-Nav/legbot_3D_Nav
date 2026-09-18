@@ -1,0 +1,218 @@
+<?xml version="1.0"?>
+
+<robot name="go2" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="network_interface" default=""/>
+  <xacro:arg name="domain" default="0"/>
+  <xacro:arg name="enable_commands" default="false"/>
+  <xacro:arg name="DEBUG" default="false"/>
+  <xacro:arg name="GAZEBO" default="false"/>
+  <xacro:arg name="CLASSIC" default="false"/>
+  <xacro:arg name="ENABLE_LIDAR" default="true"/>
+  <xacro:arg name="controller_config" default="$(find go2_description)/config/gazebo.yaml"/>
+
+  <xacro:include filename="$(find go2_description)/xacro/const.xacro"/>
+  <xacro:include filename="$(find go2_description)/xacro/materials.xacro"/>
+  <xacro:include filename="$(find go2_description)/xacro/leg.xacro"/>
+
+  <xacro:if value="$(arg GAZEBO)">
+    <xacro:if value="$(arg CLASSIC)">
+      <xacro:include filename="$(find go2_description)/xacro/gazebo_classic.xacro"/>
+    </xacro:if>
+    <xacro:unless value="$(arg CLASSIC)">
+      <xacro:include filename="$(find go2_description)/xacro/gazebo.xacro"/>
+    </xacro:unless>
+  </xacro:if>
+  <xacro:unless value="$(arg GAZEBO)">
+    <xacro:include filename="$(find go2_description)/xacro/ros2_control.xacro"/>
+  </xacro:unless>
+
+
+  <!-- <xacro:stairs stairs="15" xpos="0" ypos="0" zpos="0" /> -->
+
+  <!-- Rotor related joint and link is only for demonstrate location. -->
+  <!-- Actually, the rotor will rotate and the joint is not fixed. Reduction ratio should be considered. -->
+
+  <!-- Debug mode will hung up the robot, use "true" or "false" to switch it. -->
+  <xacro:if value="$(arg DEBUG)">
+    <link name="world"/>
+    <joint name="base_static_joint" type="fixed">
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <parent link="world"/>
+      <child link="base"/>
+    </joint>
+  </xacro:if>
+
+  <link name="base">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="floating_base" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="base"/>
+    <child link="trunk"/>
+  </joint>
+
+  <link name="trunk">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="file://$(find go2_description)/meshes/trunk.dae" scale="1 1 1"/>
+      </geometry>
+      <!-- <material name="orange"/> -->
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="${trunk_length} ${trunk_width} ${trunk_height}"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.1881 0.04675 0.057"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.285 0 0.01"/>
+      <geometry>
+        <cylinder length="0.05" radius="0.045"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.293 0 -0.06"/>
+      <geometry>
+        <box size="0.047 0.047 0.047"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="${trunk_com_x} ${trunk_com_y} ${trunk_com_z}"/>
+      <mass value="${trunk_mass}"/>
+      <inertia
+          ixx="${trunk_ixx}" ixy="${trunk_ixy}" ixz="${trunk_ixz}"
+          iyy="${trunk_iyy}" iyz="${trunk_iyz}"
+          izz="${trunk_izz}"/>
+    </inertial>
+  </link>
+
+  <joint name="imu_joint" type="fixed">
+    <parent link="trunk"/>
+    <child link="imu_link"/>
+    <origin rpy="0 0 0" xyz="-0.02557 0 0.04232"/>
+  </joint>
+
+  <link name="imu_link">
+    <inertial>
+      <mass value="0.001"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <!-- <material name="red"/> -->
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size=".001 .001 .001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="camera_joint_front" type="fixed">
+    <parent link="trunk"/>
+    <child link="front_camera"/>
+    <origin rpy="0 0 0" xyz="0.32715 0 0.04297"/>
+  </joint>
+
+  <link name="front_camera">
+  </link>
+
+  <joint name="lidar_joint" type="fixed">
+    <origin
+        xyz="0.28945 0 -0.046825" rpy="0 2.8782 0"/>
+    <parent link="trunk"/>
+    <child link="lidar"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+
+  <link name="lidar">
+  </link>
+
+  <!-- Frame aliases used by the GO2 built-in Unitree L1 DDS stream. -->
+  <joint name="utlidar_lidar_joint" type="fixed">
+    <parent link="lidar"/>
+    <child link="utlidar_lidar"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="utlidar_lidar"/>
+  <joint name="utlidar_imu_joint" type="fixed">
+    <parent link="utlidar_lidar"/>
+    <child link="utlidar_imu"/>
+    <!-- Unitree: IMU origin expressed in the L1 lidar frame; axes parallel. -->
+    <origin xyz="-0.007698 -0.014655 0.00667" rpy="0 0 0"/>
+  </joint>
+  <link name="utlidar_imu"/>
+
+  <xacro:leg name="FR" mirror="-1" mirror_dae="False" front_hind="1" front_hind_dae="True"/>
+  <xacro:leg name="FL" mirror="1" mirror_dae="True" front_hind="1" front_hind_dae="True"/>
+  <xacro:leg name="RR" mirror="-1" mirror_dae="False" front_hind="-1" front_hind_dae="False"/>
+  <xacro:leg name="RL" mirror="1" mirror_dae="True" front_hind="-1" front_hind_dae="False"/>
+  <xacro:arg name="lidar_x" default="0.15"/>
+  <xacro:arg name="lidar_y" default="0.0"/>
+  <xacro:arg name="lidar_z" default="0.15"/>
+  <xacro:arg name="lidar_roll" default="0.0"/>
+  <xacro:arg name="lidar_pitch" default="0.0"/>
+  <xacro:arg name="lidar_yaw" default="0.0"/>
+  <!-- Simulation mount; calibrate all six values before using a real payload. -->
+  <link name="livox_link">
+    <inertial><mass value="0.264"/><origin xyz="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+  <joint name="livox_mount" type="fixed">
+    <parent link="trunk"/><child link="livox_link"/>
+    <origin xyz="$(arg lidar_x) $(arg lidar_y) $(arg lidar_z)" rpy="$(arg lidar_roll) $(arg lidar_pitch) $(arg lidar_yaw)"/>
+  </joint>
+  <link name="livox_imu_link">
+    <inertial><mass value="0.001"/><origin xyz="0 0 0"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+  </link>
+  <joint name="livox_imu_joint" type="fixed">
+    <parent link="livox_link"/><child link="livox_imu_link"/>
+    <origin xyz="0.011 0.02329 -0.04412" rpy="0 0 0"/>
+  </joint>
+  <xacro:if value="$(arg GAZEBO)">
+    <gazebo reference="livox_imu_link">
+      <sensor name="livox_imu" type="imu"><topic>/livox/imu</topic><gz_frame_id>livox_imu_link</gz_frame_id><always_on>true</always_on><update_rate>200</update_rate></sensor>
+    </gazebo>
+    <xacro:if value="$(arg ENABLE_LIDAR)">
+      <gazebo reference="livox_link">
+        <sensor name="navigation_lidar" type="gpu_lidar">
+          <topic>/livox/scan</topic><gz_frame_id>livox_link</gz_frame_id>
+          <update_rate>10</update_rate><always_on>true</always_on><visualize>false</visualize>
+          <lidar><scan>
+            <horizontal><samples>720</samples><resolution>1</resolution><min_angle>-3.14159265</min_angle><max_angle>3.14159265</max_angle></horizontal>
+            <vertical><samples>32</samples><resolution>1</resolution><min_angle>-0.122173</min_angle><max_angle>0.907571</max_angle></vertical>
+          </scan><range><min>0.1</min><max>40</max><resolution>0.01</resolution></range></lidar>
+        </sensor>
+      </gazebo>
+    </xacro:if>
+    <gazebo>
+      <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
+        <odom_frame>odom</odom_frame><robot_base_frame>base</robot_base_frame>
+        <odom_topic>/go2/odometry</odom_topic><tf_topic>/go2/pose_tf</tf_topic>
+        <odom_publish_frequency>100</odom_publish_frequency><dimensions>3</dimensions>
+      </plugin>
+    </gazebo>
+  </xacro:if>
+</robot>

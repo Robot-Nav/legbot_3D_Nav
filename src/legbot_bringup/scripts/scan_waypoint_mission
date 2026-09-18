@@ -1,0 +1,675 @@
+#!/usr/bin/env python3
+"""Queue RViz waypoints for SCAN and advance after each one is reached."""
+
+import argparse
+from collections import deque
+import json
+import math
+import os
+import sys
+import time
+
+import rclpy
+from geometry_msgs.msg import Point, PointStamped, PoseStamped
+from nav_msgs.msg import Odometry
+from rclpy.executors import ExternalShutdownException
+try:
+    from rclpy.exceptions import RCLError
+except ImportError:  # Jazzy exposes the underlying shutdown error as RuntimeError.
+    RCLError = RuntimeError
+from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
+from rclpy.utilities import remove_ros_args
+from scan_planner.msg import Bspline
+from std_msgs.msg import Bool, String
+from std_srvs.srv import SetBool, Trigger
+from visualization_msgs.msg import Marker, MarkerArray
+
+
+def parse_waypoints(value):
+    points = []
+    if not value.strip():
+        return points
+    for item in value.split(';'):
+        fields = [float(field.strip()) for field in item.split(',')]
+        if len(fields) != 3 or not all(math.isfinite(field) for field in fields):
+            raise ValueError('each waypoint must be finite x,y,z')
+        points.append(tuple(fields))
+    return points
+
+
+class WaypointMission(Node):
+    def __init__(self, args):
+        super().__init__('scan_waypoint_mission')
+        if args.input_topic.strip().lower() in ('disabled', 'none'):
+            args.input_topic = ''
+        self.waypoints = parse_waypoints(args.waypoints)
+        self.frame_id = args.frame_id
+        self.interactive = bool(args.input_topic)
+        self.output = os.path.abspath(args.output)
+        self.reach_xy = args.reach_xy
+        self.reach_z = args.reach_z
+        self.ack_timeout = args.ack_timeout
+        self.max_attempts = args.max_attempts
+        self.dwell_seconds = args.dwell_seconds
+        self.max_reach_speed = args.max_reach_speed
+        self.delete_radius = args.delete_radius
+        self.mode = args.mode
+        if self.mode == 'direct':
+            self.waypoints.clear()
+        self.ready = not bool(args.ready_topic)
+        self.index = 0
+        self.pose = None
+        self.linear_speed = None
+        self.pose_history = deque(maxlen=30)
+        self.reached_since = None
+        self.goal_stamp = None
+        self.stop_ack_received = False
+        self.last_goal_stamp_ns = -1
+        self.bspline_count = 0
+        self.bspline_at_send = 0
+        self.attempts = [0] * len(self.waypoints)
+        self.acknowledged = [False] * len(self.waypoints)
+        self.reached = [False] * len(self.waypoints)
+        self.last_send = None
+        self.direct_goal = None
+        self.started = time.monotonic()
+        self.completed = False
+        self.failed = False
+
+        goal_qos = QoSProfile(depth=1)
+        goal_qos.reliability = ReliabilityPolicy.RELIABLE
+        goal_qos.durability = DurabilityPolicy.VOLATILE
+        marker_qos = QoSProfile(depth=1)
+        marker_qos.reliability = ReliabilityPolicy.RELIABLE
+        marker_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        self.goal_pub = self.create_publisher(PoseStamped, args.goal_topic, goal_qos)
+        self.marker_pub = self.create_publisher(MarkerArray, '/scan/mission_waypoints', marker_qos)
+        self.complete_pub = self.create_publisher(Bool, '/scan/mission_complete', marker_qos)
+        self.plan_ready_pub = self.create_publisher(Bool, '/scan/plan_ready', marker_qos)
+        self.mode_pub = self.create_publisher(String, '/scan/waypoint_mode', marker_qos)
+        if args.ready_topic:
+            self.create_subscription(Bool, args.ready_topic, self.on_ready, marker_qos)
+        if args.input_topic:
+            self.create_subscription(PoseStamped, args.input_topic, self.on_waypoint, goal_qos)
+        if args.delete_topic:
+            self.create_subscription(PointStamped, args.delete_topic,
+                                     self.on_delete_point, goal_qos)
+        self.undo_service = self.create_service(
+            Trigger, '/scan/waypoints/undo', self.on_undo)
+        self.clear_service = self.create_service(
+            Trigger, '/scan/waypoints/clear', self.on_clear)
+        self.mode_service = self.create_service(
+            SetBool, '/scan/waypoints/set_direct_mode', self.on_set_direct_mode)
+        self.create_subscription(Odometry, args.odom_topic, self.on_odom, qos_profile_sensor_data)
+        self.create_subscription(Bspline, args.bspline_topic, self.on_bspline, 10)
+        self.create_subscription(PoseStamped, '/scan/goal_stop_ack', self.on_stop_ack, 10)
+        self.create_timer(0.1, self.step)
+        self.create_timer(0.5, self.publish_markers)
+        self.write_state('waiting_for_waypoint' if not self.waypoints else 'waiting_for_scan')
+        self.publish_mode()
+        # Transient-local state must describe the current mission, not retain a
+        # completion value from an earlier waypoint process incarnation.
+        self.complete_pub.publish(Bool(data=False))
+        self.plan_ready_pub.publish(Bool(data=False))
+        self.get_logger().info(
+            'RViz waypoint input ready on %s; mode=%s; delete=%s; %d initial waypoints loaded' %
+            (args.input_topic or '<disabled>', self.mode,
+             args.delete_topic or '<disabled>', len(self.waypoints)))
+
+    def publish_mode(self):
+        self.mode_pub.publish(String(data=self.mode))
+
+    def next_goal_stamp(self):
+        # Gazebo can be paused or run below real time. Distinct clicks may
+        # otherwise get the same sim-time stamp, defeating old-plan rejection
+        # and stop-ack matching. Keep our outgoing goal stamps monotonic.
+        stamp = self.get_clock().now().to_msg()
+        stamp_ns = stamp.sec * 1_000_000_000 + stamp.nanosec
+        stamp_ns = max(stamp_ns, self.last_goal_stamp_ns + 1)
+        self.last_goal_stamp_ns = stamp_ns
+        stamp.sec, stamp.nanosec = divmod(stamp_ns, 1_000_000_000)
+        return stamp
+
+    def on_waypoint(self, msg):
+        if msg.header.frame_id and msg.header.frame_id != self.frame_id:
+            self.get_logger().error(
+                'Rejected waypoint in frame %s; RViz Fixed Frame must be %s' %
+                (msg.header.frame_id, self.frame_id))
+            return
+        point = msg.pose.position
+        values = (float(point.x), float(point.y), float(point.z))
+        if not all(math.isfinite(value) for value in values):
+            self.get_logger().error('Rejected waypoint containing a non-finite coordinate')
+            return
+        if self.mode == 'direct':
+            if not self.ready or self.pose is None:
+                self.get_logger().warning(
+                    'Direct SCAN goal rejected until robot pose and coordinator are ready')
+                return
+            direct = PoseStamped()
+            direct.header = msg.header
+            direct.header.stamp = self.next_goal_stamp()
+            direct.header.frame_id = self.frame_id
+            direct.pose = msg.pose
+            # Rearm the stand/walk coordinator before publishing the goal, so
+            # a fast SCAN response cannot arrive while it still considers the
+            # previous direct mission complete.
+            self.complete_pub.publish(Bool(data=False))
+            self.plan_ready_pub.publish(Bool(data=False))
+            self.goal_pub.publish(direct)
+            self.direct_goal = values
+            self.goal_stamp = (direct.header.stamp.sec, direct.header.stamp.nanosec)
+            self.stop_ack_received = False
+            self.last_send = time.monotonic()
+            self.reached_since = None
+            self.completed = False
+            self.failed = False
+            print('DIRECT_GOAL_SENT goal=(%.2f,%.2f,%.2f)' % values, flush=True)
+            self.write_state('direct_goal_sent')
+            self.publish_markers()
+            return
+        self.waypoints.append(values)
+        self.attempts.append(0)
+        self.acknowledged.append(False)
+        self.reached.append(False)
+        self.completed = False
+        print('WAYPOINT_QUEUED index=%d goal=(%.2f,%.2f,%.2f)' %
+              (len(self.waypoints) - 1, *values), flush=True)
+        self.write_state('queued')
+        self.publish_markers()
+
+    def first_editable_index(self):
+        return self.index
+
+    def stop_active_goal(self):
+        if self.last_send is None or self.pose is None:
+            return
+        stop = PoseStamped()
+        stop.header.stamp = self.next_goal_stamp()
+        stop.header.frame_id = self.frame_id
+        stop.pose.position.x, stop.pose.position.y, stop.pose.position.z = self.pose
+        stop.pose.orientation.w = 1.0
+        # scan_go2_cmd_adapter stops the previous trajectory immediately when
+        # it sees a newer goal. The current-pose goal therefore acts as a
+        # cancellation without inventing a second command topic.
+        self.goal_pub.publish(stop)
+
+    def remove_waypoint(self, index, source):
+        first = self.first_editable_index()
+        if index < first or index >= len(self.waypoints):
+            return False
+        if index == self.index:
+            self.stop_active_goal()
+            self.last_send = None
+            self.reached_since = None
+            self.failed = False
+        point = self.waypoints.pop(index)
+        self.attempts.pop(index)
+        self.acknowledged.pop(index)
+        self.reached.pop(index)
+        print('WAYPOINT_DELETED index=%d goal=(%.2f,%.2f,%.2f) source=%s' %
+              (index, *point, source), flush=True)
+        self.write_state('queue_edited' if self.index < len(self.waypoints)
+                         else 'waiting_for_waypoint')
+        self.publish_markers()
+        return True
+
+    def on_delete_point(self, msg):
+        if msg.header.frame_id and msg.header.frame_id != self.frame_id:
+            self.get_logger().error(
+                'Rejected delete point in frame %s; RViz Fixed Frame must be %s' %
+                (msg.header.frame_id, self.frame_id))
+            return
+        x, y = float(msg.point.x), float(msg.point.y)
+        if not all(math.isfinite(value) for value in (x, y)):
+            return
+        if self.mode == 'direct':
+            if self.direct_goal is None or self.last_send is None:
+                self.get_logger().info('No active direct waypoint is available to delete')
+                return
+            distance = math.hypot(self.direct_goal[0] - x, self.direct_goal[1] - y)
+            if distance > self.delete_radius:
+                self.get_logger().info(
+                    'Delete click is %.2f m from the active direct waypoint; limit is %.2f m' %
+                    (distance, self.delete_radius))
+                return
+            deleted = self.direct_goal
+            self.stop_active_goal()
+            self.direct_goal = None
+            self.last_send = None
+            self.reached_since = None
+            self.completed = False
+            self.failed = False
+            print('DIRECT_GOAL_DELETED goal=(%.2f,%.2f,%.2f) source=rviz' % deleted,
+                  flush=True)
+            self.write_state('waiting_for_waypoint')
+            self.publish_markers()
+            return
+        first = self.first_editable_index()
+        candidates = range(first, len(self.waypoints))
+        nearest = min(candidates,
+                      key=lambda idx: math.hypot(self.waypoints[idx][0] - x,
+                                                 self.waypoints[idx][1] - y),
+                      default=None)
+        if nearest is None:
+            self.get_logger().info('No pending waypoint is available to delete')
+            return
+        distance = math.hypot(self.waypoints[nearest][0] - x,
+                              self.waypoints[nearest][1] - y)
+        if distance > self.delete_radius:
+            self.get_logger().info(
+                'Delete click is %.2f m from the nearest pending waypoint; limit is %.2f m' %
+                (distance, self.delete_radius))
+            return
+        self.remove_waypoint(nearest, 'rviz')
+
+    def on_undo(self, request, response):
+        del request
+        if self.mode == 'direct':
+            response.success = False
+            response.message = 'undo is available only in queue mode'
+            return response
+        first = self.first_editable_index()
+        if first >= len(self.waypoints):
+            response.success = False
+            response.message = 'no pending waypoint to undo'
+            return response
+        index = len(self.waypoints) - 1
+        self.remove_waypoint(index, 'undo_service')
+        response.success = True
+        response.message = 'removed pending waypoint %d' % index
+        return response
+
+    def on_clear(self, request, response):
+        del request
+        if self.mode == 'direct':
+            if self.last_send is None:
+                response.success = False
+                response.message = 'no direct goal to stop'
+                return response
+            self.stop_active_goal()
+            self.direct_goal = None
+            self.last_send = None
+            self.reached_since = None
+            self.completed = False
+            self.failed = False
+            self.write_state('waiting_for_waypoint')
+            self.publish_markers()
+            response.success = True
+            response.message = 'stopped direct SCAN goal'
+            return response
+        first = self.first_editable_index()
+        count = len(self.waypoints) - first
+        if count <= 0:
+            response.success = False
+            response.message = 'no pending waypoints to clear'
+            return response
+        self.stop_active_goal()
+        self.last_send = None
+        self.direct_goal = None
+        self.reached_since = None
+        self.failed = False
+        del self.waypoints[first:]
+        del self.attempts[first:]
+        del self.acknowledged[first:]
+        del self.reached[first:]
+        print('WAYPOINTS_CLEARED count=%d first_index=%d' % (count, first), flush=True)
+        self.write_state('queue_edited' if self.index < len(self.waypoints)
+                         else 'waiting_for_waypoint')
+        self.publish_markers()
+        response.success = True
+        response.message = 'cleared %d pending waypoints' % count
+        return response
+
+    def on_set_direct_mode(self, request, response):
+        requested = 'direct' if request.data else 'queue'
+        if requested == self.mode:
+            response.success = True
+            response.message = 'waypoint mode already %s' % self.mode
+            return response
+
+        self.stop_active_goal()
+        self.waypoints.clear()
+        self.attempts.clear()
+        self.acknowledged.clear()
+        self.reached.clear()
+        self.index = 0
+        self.last_send = None
+        self.direct_goal = None
+        self.reached_since = None
+        self.completed = False
+        self.failed = False
+        self.mode = requested
+        self.publish_mode()
+        self.publish_markers()
+        self.write_state('waiting_for_waypoint')
+        print('WAYPOINT_MODE mode=%s' % self.mode, flush=True)
+        response.success = True
+        response.message = 'waypoint mode set to %s; previous goals cleared' % self.mode
+        return response
+
+    def on_ready(self, msg):
+        if msg.data and not self.ready:
+            self.ready = True
+            self.get_logger().info('GO2 demo coordinator is ready; waypoint mission enabled')
+
+    def on_odom(self, msg):
+        p = msg.pose.pose.position
+        q = msg.pose.pose.orientation
+        values = (p.x, p.y, p.z, q.x, q.y, q.z, q.w)
+        q_norm = math.sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w)
+        if (all(math.isfinite(value) for value in values)
+                and max(abs(p.x), abs(p.y), abs(p.z)) <= 10000.0
+                and 0.5 <= q_norm <= 1.5):
+            self.pose = (p.x, p.y, p.z)
+            stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+            if stamp <= 0.0:
+                stamp = time.monotonic()
+            self.pose_history.append((stamp, p.x, p.y))
+            while (len(self.pose_history) > 2 and
+                   stamp - self.pose_history[0][0] > 0.8):
+                self.pose_history.popleft()
+            if len(self.pose_history) >= 2:
+                oldest = self.pose_history[0]
+                dt = stamp - oldest[0]
+                if dt > 0.05:
+                    # FAST-LIO's instantaneous twist includes footfall/IMU
+                    # vibration.  Net XY displacement over a short window is
+                    # a reliable indication that the base has settled.
+                    self.linear_speed = math.hypot(p.x - oldest[1], p.y - oldest[2]) / dt
+
+    def on_stop_ack(self, msg):
+        # The execution adapter publishes this only after latching a zero
+        # command at the final goal. Match the exact goal timestamp/position;
+        # an old acknowledgment must never complete a replacement target.
+        stamp = (msg.header.stamp.sec, msg.header.stamp.nanosec)
+        if (self.last_send is None or self.completed or
+                self.goal_stamp != stamp or self.stop_ack_received):
+            return
+        if self.mode == 'direct':
+            target = self.direct_goal
+        else:
+            target = self.waypoints[self.index] if self.index < len(self.waypoints) else None
+        if (target is None or msg.header.frame_id != self.frame_id or
+                math.hypot(msg.pose.position.x - target[0],
+                           msg.pose.position.y - target[1]) > self.reach_xy or
+                (self.reach_z > 0.0 and
+                 abs(msg.pose.position.z - target[2]) > self.reach_z)):
+            return
+        self.stop_ack_received = True
+        self.reached_since = time.monotonic()
+        self.write_state('settling_at_direct_goal' if self.mode == 'direct'
+                         else 'settling_at_waypoint')
+        self.get_logger().info('Execution adapter confirmed final-goal zero command')
+
+    def on_bspline(self, msg):
+        self.bspline_count += 1
+        start_stamp = (msg.start_time.sec, msg.start_time.nanosec)
+        if self.goal_stamp is not None and start_stamp < self.goal_stamp:
+            # A spline from the preceding goal must not enable RL walking for
+            # this replacement goal. The execution adapter rejects it too.
+            return
+        positions = [(point.x, point.y, point.z) for point in msg.pos_pts]
+        has_motion = bool(positions) and max(
+            math.dist(positions[0], point) for point in positions) > 0.05
+        if self.mode == 'direct':
+            if self.last_send is not None and not self.completed and has_motion:
+                self.plan_ready_pub.publish(Bool(data=True))
+            return
+        if self.index >= len(self.waypoints):
+            return
+        if (self.last_send is not None and not self.acknowledged[self.index]
+                and self.bspline_count > self.bspline_at_send and has_motion):
+            self.acknowledged[self.index] = True
+            self.plan_ready_pub.publish(Bool(data=True))
+            print('WAYPOINT_PLAN_ACCEPTED index=%d' % self.index, flush=True)
+            self.write_state('executing')
+
+    def send_current(self):
+        if self.index >= len(self.waypoints):
+            return
+        point = self.waypoints[self.index]
+        msg = PoseStamped()
+        msg.header.stamp = self.next_goal_stamp()
+        msg.header.frame_id = self.frame_id
+        msg.pose.position.x, msg.pose.position.y, msg.pose.position.z = point
+        msg.pose.orientation.w = 1.0
+        self.bspline_at_send = self.bspline_count
+        self.attempts[self.index] += 1
+        self.last_send = time.monotonic()
+        self.goal_stamp = (msg.header.stamp.sec, msg.header.stamp.nanosec)
+        self.stop_ack_received = False
+        self.reached_since = None
+        self.goal_pub.publish(msg)
+        print('WAYPOINT_SENT index=%d attempt=%d goal=(%.2f,%.2f,%.2f)' %
+              (self.index, self.attempts[self.index], *point), flush=True)
+        self.write_state('waiting_for_plan')
+
+    def step(self):
+        if self.mode == 'direct':
+            self.step_direct()
+            return
+        if (self.completed or self.failed or
+                self.pose is None or not self.ready):
+            return
+        if self.index >= len(self.waypoints):
+            return
+        if self.goal_pub.get_subscription_count() < 1:
+            return
+        if self.last_send is None:
+            self.send_current()
+            return
+        if not self.acknowledged[self.index] and not self.stop_ack_received:
+            if time.monotonic() - self.last_send >= self.ack_timeout:
+                if self.attempts[self.index] >= self.max_attempts:
+                    self.failed = True
+                    print('MISSION_FAILED index=%d reason=plan_ack_timeout' % self.index, flush=True)
+                    self.write_state('failed')
+                else:
+                    self.send_current()
+            return
+
+        target = self.waypoints[self.index]
+        xy_error = math.hypot(self.pose[0] - target[0], self.pose[1] - target[1])
+        z_error = abs(self.pose[2] - target[2])
+        # A 2D RViz goal carries z=0, while SCAN projects it onto the current
+        # FAST-LIO height when manual_goal_use_message_z is false.  Treat a
+        # non-positive threshold as an XY-only reach check so vertical odometry
+        # drift cannot block a flat-ground waypoint queue.
+        if not self.stop_ack_received or self.reached_since is None:
+            return
+        if time.monotonic() - self.reached_since < self.dwell_seconds:
+            return
+        # A non-positive threshold explicitly disables the optional velocity
+        # gate.  FAST-LIO pose noise otherwise makes an exact zero threshold
+        # impossible to satisfy and leaves a reached waypoint stuck forever.
+        if (self.max_reach_speed > 0.0 and
+                (self.linear_speed is None or self.linear_speed > self.max_reach_speed)):
+            return
+        self.reached[self.index] = True
+        print('WAYPOINT_REACHED index=%d pose=(%.2f,%.2f,%.2f)' %
+              (self.index, *self.pose), flush=True)
+        self.index += 1
+        if self.index >= len(self.waypoints):
+            if self.interactive:
+                self.last_send = None
+                self.reached_since = None
+                print('WAYPOINT_QUEUE_EMPTY total=%d' % len(self.waypoints), flush=True)
+                self.write_state('waiting_for_waypoint')
+                self.publish_markers()
+                return
+            self.completed = True
+            print('MISSION_COMPLETE waypoints=%d' % len(self.waypoints), flush=True)
+            self.complete_pub.publish(Bool(data=True))
+            self.write_state('complete')
+            self.publish_markers()
+            return
+        self.last_send = None
+        self.reached_since = None
+        self.write_state('advancing')
+
+    def step_direct(self):
+        if (self.completed or self.failed or self.pose is None or not self.ready or
+                self.direct_goal is None or self.last_send is None):
+            return
+
+        if not self.stop_ack_received or self.reached_since is None:
+            return
+        if time.monotonic() - self.reached_since < self.dwell_seconds:
+            return
+        if self.max_reach_speed > 0.0 and (
+                self.linear_speed is None or self.linear_speed > self.max_reach_speed):
+            return
+
+        self.completed = True
+        print('DIRECT_GOAL_REACHED goal=(%.2f,%.2f,%.2f) pose=(%.2f,%.2f,%.2f)' %
+              (*self.direct_goal, *self.pose), flush=True)
+        self.complete_pub.publish(Bool(data=True))
+        self.write_state('direct_goal_complete')
+
+    def publish_markers(self):
+        now = self.get_clock().now().to_msg()
+        array = MarkerArray()
+        clear = Marker()
+        clear.action = Marker.DELETEALL
+        array.markers.append(clear)
+        if self.mode == 'direct' and self.direct_goal is not None:
+            x, y, z = self.direct_goal
+            marker = Marker()
+            marker.header.frame_id = self.frame_id
+            marker.header.stamp = now
+            marker.ns = 'direct_waypoint'
+            marker.id = 50000
+            marker.type = Marker.SPHERE
+            marker.action = Marker.ADD
+            marker.pose.position = Point(
+                x=x, y=y,
+                z=self.pose[2] if self.pose is not None else z)
+            marker.pose.orientation.w = 1.0
+            marker.scale.x = marker.scale.y = marker.scale.z = 0.22
+            marker.color.r, marker.color.g, marker.color.b, marker.color.a = 1.0, 0.75, 0.1, 0.95
+            array.markers.append(marker)
+            label = Marker()
+            label.header = marker.header
+            label.ns = 'direct_waypoint_label'
+            label.id = 50001
+            label.type = Marker.TEXT_VIEW_FACING
+            label.action = Marker.ADD
+            label.pose.position = Point(x=x, y=y, z=marker.pose.position.z + 0.28)
+            label.pose.orientation.w = 1.0
+            label.scale.z = 0.20
+            label.color.r = label.color.g = label.color.b = label.color.a = 1.0
+            label.text = 'direct'
+            array.markers.append(label)
+        line = Marker()
+        line.header.frame_id = self.frame_id
+        line.header.stamp = now
+        line.ns = 'mission_route'
+        line.id = 0
+        line.type = Marker.LINE_STRIP
+        line.action = Marker.ADD
+        line.scale.x = 0.035
+        line.color.r, line.color.g, line.color.b, line.color.a = 0.2, 0.8, 1.0, 0.8
+        line.points = [Point(x=x, y=y, z=z) for x, y, z in self.waypoints]
+        array.markers.append(line)
+        for idx, (x, y, z) in enumerate(self.waypoints):
+            marker = Marker()
+            marker.header.frame_id = self.frame_id
+            marker.header.stamp = now
+            marker.ns = 'mission_waypoints'
+            marker.id = idx + 1
+            marker.type = Marker.SPHERE
+            marker.action = Marker.ADD
+            marker.pose.position = Point(x=x, y=y, z=z)
+            marker.pose.orientation.w = 1.0
+            marker.scale.x = marker.scale.y = marker.scale.z = 0.18
+            if self.reached[idx]:
+                marker.color.r, marker.color.g, marker.color.b = 0.2, 0.9, 0.2
+            elif idx == self.index and not self.completed:
+                marker.color.r, marker.color.g, marker.color.b = 1.0, 0.75, 0.1
+            else:
+                marker.color.r, marker.color.g, marker.color.b = 0.2, 0.6, 1.0
+            marker.color.a = 0.95
+            array.markers.append(marker)
+            label = Marker()
+            label.header.frame_id = self.frame_id
+            label.header.stamp = now
+            label.ns = 'mission_waypoint_labels'
+            label.id = idx + 10001
+            label.type = Marker.TEXT_VIEW_FACING
+            label.action = Marker.ADD
+            label.pose.position = Point(x=x, y=y, z=z + 0.28)
+            label.pose.orientation.w = 1.0
+            label.scale.z = 0.22
+            label.color.r = label.color.g = label.color.b = label.color.a = 1.0
+            label.text = str(idx + 1)
+            array.markers.append(label)
+        self.marker_pub.publish(array)
+
+    def write_state(self, state):
+        data = {
+            'state': state,
+            'elapsed_wall_seconds': time.monotonic() - self.started,
+            'waypoints': self.waypoints,
+            'current_index': self.index if self.index < len(self.waypoints) else None,
+            'attempts': self.attempts,
+            'plan_acknowledged': self.acknowledged,
+            'bspline_messages_seen': self.bspline_count,
+            'reached': self.reached,
+            'last_pose_xyz': self.pose,
+            'linear_speed': self.linear_speed,
+            'settle_seconds_required': self.dwell_seconds,
+            'max_reach_speed': self.max_reach_speed,
+            'coordinator_ready': self.ready,
+            'mode': self.mode,
+            'direct_goal': self.direct_goal,
+        }
+        os.makedirs(os.path.dirname(self.output), exist_ok=True)
+        temporary = self.output + '.tmp'
+        with open(temporary, 'w', encoding='utf-8') as stream:
+            json.dump(data, stream, indent=2, ensure_ascii=False)
+            stream.write('\n')
+        os.replace(temporary, self.output)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--waypoints', default='', help='optional semicolon separated x,y,z triples')
+    parser.add_argument('--input-topic', default='', help='PoseStamped topic used to append waypoints')
+    parser.add_argument('--delete-topic', default='/scan/waypoint_delete',
+                        help='PointStamped topic used to delete a nearby queued or active direct waypoint')
+    parser.add_argument('--delete-radius', type=float, default=0.5)
+    parser.add_argument('--mode', choices=('queue', 'direct'), default='direct',
+                        help='queue executes all RViz goals; direct forwards each new goal to SCAN')
+    parser.add_argument('--frame-id', default='odom')
+    parser.add_argument('--output', required=True)
+    parser.add_argument('--odom-topic', default='/fast_lio/odometry_base')
+    parser.add_argument('--goal-topic', default='/scan/goal')
+    parser.add_argument('--bspline-topic', default='/scan/planning/bspline')
+    parser.add_argument('--ready-topic', default='')
+    parser.add_argument('--reach-xy', type=float, default=0.32)
+    parser.add_argument('--reach-z', type=float, default=0.28)
+    parser.add_argument('--ack-timeout', type=float, default=8.0)
+    parser.add_argument('--max-attempts', type=int, default=5)
+    parser.add_argument('--dwell-seconds', type=float, default=0.8)
+    parser.add_argument('--max-reach-speed', type=float, default=0.0,
+                        help='maximum XY speed at reach; <=0 disables this optional gate')
+    args = parser.parse_args(remove_ros_args(args=sys.argv)[1:])
+    rclpy.init(args=sys.argv)
+    node = WaypointMission(args)
+    try:
+        rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException, RCLError):
+        pass
+    finally:
+        try:
+            node.destroy_node()
+            if rclpy.ok():
+                rclpy.shutdown()
+        except (KeyboardInterrupt, ExternalShutdownException, RCLError, RuntimeError):
+            pass
+
+
+if __name__ == '__main__':
+    main()

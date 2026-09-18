@@ -1,0 +1,117 @@
+scan_planner_node:
+  ros__parameters:
+    # Permit rolling replanning after only 0.2 m of planned progress. At the
+    # 0.5 m/s speed limit this is roughly a 0.4 s regular refresh interval.
+    fsm.thresh_replan: 0.2
+    fsm.thresh_no_replan: 0.10
+    fsm.finish_dist: 0.40
+    # Coarse same-floor gate (the bundled PCT route has about 4 m floor
+    # spacing); arrival itself is always decided in XY.
+    fsm.finish_dist_z: 1.5
+    fsm.align_reference_height_to_odom: true
+    fsm.max_reference_height_alignment: 0.8
+    fsm.odom_twist_in_body_frame: true
+    fsm.emergency_time_: 1.0
+    fsm.fail_safe: true
+    fsm.max_replan_fail_count: 20
+    # Keep the mission after a transient occupied-start failure. Stop first,
+    # allow ray clearing to update the map, then retry at a bounded rate.
+    fsm.replan_retry_delay: 0.5
+    grid_map.sensor_type: lidar
+    grid_map.cloud_is_world: true
+    grid_map.need_extrinsic: false
+    # SCAN uses only the current 240-degree forward sector. FAST-LIO still
+    # receives the original 360-degree cloud for localization. Rear occupancy is also
+    # cleared so historical observations cannot affect planning after turning.
+    grid_map.lidar_horizontal_fov_deg: 240.0
+    grid_map.lidar_clear_outside_fov: true
+    grid_map.sliding_map_frame_id: scan_sliding_map
+    grid_map.resolution: 0.1
+    grid_map.sliding_map_size_x: 10.0
+    grid_map.sliding_map_size_y: 10.0
+    grid_map.sliding_map_size_z: 5.0
+    grid_map.map_sliding_thresh: 0.2
+    # Slightly enlarge Robot-Nav's compact footprint so the local trajectory
+    # keeps a modest extra margin without returning to the former wide detours.
+    # PCT owns terrain traversability; SCAN only avoids local occupied cells.
+    grid_map.double_cylinder_radius: 0.20
+    grid_map.double_cylinder_offset: 0.07
+    grid_map.obstacles_inflation_z_up: 0.03
+    grid_map.obstacles_inflation_z_down: 0.03
+    grid_map.ground_height: -0.1
+    fsm.manual_goal_visual_standing_height: 0.30
+    # Publish only the base collision band for RViz; the full 3-D occupancy
+    # remains available internally to the planner.
+    grid_map.vis_height: 0.25
+    grid_map.vis_height_down: 0.10
+    grid_map.depth_filter_maxdist: 5.0
+    grid_map.depth_filter_mindist: 0.3
+    grid_map.depth_filter_margin: 1
+    grid_map.k_depth_scaling_factor: 1000.0
+    grid_map.skip_pixel: 2
+    grid_map.p_hit: 0.85
+    grid_map.p_miss: 0.3
+    grid_map.p_min: 0.12
+    grid_map.p_max: 0.98
+    grid_map.p_occ: 0.8
+    grid_map.max_ray_length: 5.0
+    manager.max_jerk: 4.0
+    manager.max_vel: 0.50
+    manager.max_acc: 0.30
+    # Look 3 m ahead so obstacles enter the local trajectory early, while
+    # remaining much shorter than the upstream drone-style 7.5 m horizon.
+    manager.planning_horizon: 3.0
+    manager.control_points_distance: 0.2
+    manager.feasibility_tolerance: 0.5
+    optimization.lambda_smooth: 1.0
+    optimization.lambda_collision: 1.0
+    optimization.lambda_feasibility: 0.1
+    optimization.lambda_fitness: 1.0
+    # Rebound potential range outside the collision footprint.  This moderate
+    # 0.25 m margin adds clearance without the former oversized 0.25/0.18 body.
+    optimization.dist0: 0.25
+    optimization.max_vel: 0.50
+    optimization.max_acc: 0.30
+    optimization.vel_tolerance: 1.0
+    optimization.acc_tolerance: 1.0
+    use_sim_time: false
+scan_go2_cmd_adapter:
+  ros__parameters:
+    time_forward: 0.55
+    # Allow the holonomic GO2 to translate through ordinary corners. Only a
+    # turn larger than about 69 degrees enters rotate-in-place; leave it below
+    # about 52 degrees to avoid a long pause at the next waypoint.
+    heading_error_threshold: 1.20
+    rotate_exit_ratio: 0.75
+    kp_pos: 0.70
+    kp_yaw: 1.2
+    # Keep body heading on the B-spline tangent. Cross-track error is already
+    # corrected by linear.y; steering the yaw toward that error causes left/
+    # right heading flips beside obstacles.
+    steer_with_position_error: false
+    # Match the ROS1 integration's conservative forward dynamics while giving
+    # the holonomic GO2 enough lateral/yaw authority to follow a tight spline.
+    max_vx: 0.50
+    max_vy: 0.22
+    max_vyaw: 1.00
+    finish_dist: 0.40
+    # Same-floor tolerance, not a precise Z arrival tolerance.
+    finish_dist_z: 1.5
+    # RViz 2D Goal Pose always carries z=0. Keep this aligned with
+    # fsm.manual_goal_use_message_z; flat/manual navigation is XY-only.
+    use_goal_z: false
+    tracking_z_weight: 0.0
+    odom_timeout: 0.5
+    slope_up_threshold: 0.3
+    slope_down_threshold: -0.3
+    stair_speed_scale: 1.0
+    min_stair_speed: 0.0
+    # Disabled by default.  A non-zero floor makes short replanned splines
+    # overshoot corners and the final goal.
+    min_walk_speed: 0.0
+    goal_slowdown_distance: 0.80
+    turn_slowdown_angle: 0.30
+    min_turn_speed_scale: 0.30
+    cmd_accel_limit: 0.75
+    cmd_yaw_accel_limit: 2.0
+    use_sim_time: false

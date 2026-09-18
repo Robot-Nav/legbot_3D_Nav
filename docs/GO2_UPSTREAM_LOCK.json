@@ -1,0 +1,27 @@
+{
+  "repository": "https://github.com/legubiao/quadruped_ros2_control",
+  "commit": "5434c5810d1a7fe223bcfd04550e9d3bfdd4b458",
+  "paths": [
+    "controllers/rl_quadruped_controller",
+    "libraries/controller_common",
+    "commands/control_input_msgs",
+    "commands/keyboard_input",
+    "hardwares/gz_quadruped_hardware",
+    "hardwares/hardware_unitree_sdk2",
+    "descriptions/unitree/go2_description"
+  ],
+  "policy_files": {
+    "descriptions/unitree/go2_description/config/robot_control.yaml": "00fefe93213c706dbcd3b26a06da19a6321ce84d8130966fc7661a06842e4d87",
+    "descriptions/unitree/go2_description/config/gazebo.yaml": "8b1522dcc76e7716fbf08899028f2d0c71491dfd9a467c122e0438e26242caae",
+    "descriptions/unitree/go2_description/config/visualize_urdf.rviz": "a9c6a5697fa2042d6a088d83add2d8b9b69e1830b16676863323c39b36bd3707",
+    "descriptions/unitree/go2_description/config/robot_lab/config.yaml": "0cc2ae3c4aa43e9aae80a654326e2e14948782fd19ff440ba9ff38a4607cc7ce",
+    "descriptions/unitree/go2_description/config/robot_lab/policy.pt": "9f14cb95e74ac9e5e30954da0fc0c33eaa41e337852ebed19fcee869279ade0b",
+    "descriptions/unitree/go2_description/config/legged_gym/config.yaml": "be764bf36cdb659d4c1d07a359ea355dec0b2585254c8fb1c3cd10f392bd62ec",
+    "descriptions/unitree/go2_description/config/legged_gym/policy.pt": "6348cd9ccf1a6e1c7c57a48f578cb7d4f35a1d0c0ac8600e34899b2606ea2f22",
+    "descriptions/unitree/go2_description/config/ocs2/task.info": "bf3a6f7fa4d3d7da7d3f6287946b82774a98d0fc17c6fe4b085e06cbec282a52",
+    "descriptions/unitree/go2_description/config/ocs2/gait.info": "cad4da4ac05edff45f2244feb7b436112f2ed7cf9d456a6650bb120c10e2708f",
+    "descriptions/unitree/go2_description/config/ocs2/reference.info": "4a8b72599d81c5e71e72fd20368eadacbad0b381f85b6824482cc0878bb5a80c",
+    "descriptions/unitree/go2_description/config/himloco/himloco.pt": "d9945f85a39944aaf241a67f7d2b25a15326a0222d0e503aeb05a7f188430509",
+    "descriptions/unitree/go2_description/config/himloco/config.yaml": "b2eacb9ebc98286576b155385768101a7a0eae5dc1d87c32c3a221f750bf6b1e"
+  }
+}

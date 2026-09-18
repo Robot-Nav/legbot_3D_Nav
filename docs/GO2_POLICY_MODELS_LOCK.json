@@ -1,0 +1,30 @@
+{
+  "checked_at": "2026-09-13",
+  "flat": {
+    "model_repository": "https://huggingface.co/diasAiMaster/unitree-go2-velocity-flat",
+    "model_revision": "9a723b7ab0784cd86abb942836aa1f208ddde891",
+    "source_repository": "https://github.com/unitreerobotics/unitree_rl_mjlab",
+    "source_revision_reviewed": "1425b15f73bd4095f0df53709d7c389c3eb9e790",
+    "license_metadata": "bsd-3-clause",
+    "files": {
+      "policy.onnx": "fbb8b61b12f2cd44dfc889f33566a8be2438124efee88b60c700b9605a94187a",
+      "policy.onnx.data": "40474dd235917877d657085f3f0a2d485d10e947e3599cad5328337e32222a74"
+    },
+    "input": [1, 45],
+    "output": [1, 12]
+  },
+  "rough": {
+    "model_repository": "https://huggingface.co/wty-yy/go2_rl_gym_data",
+    "model_path": "go2_rl_robotlab/symmetry_v1_77k_0.7006_bb4a078_20260706/exported/policy.onnx",
+    "model_revision": "b9cd72d5046358b4ca6840a3d795d001402e6bfc",
+    "source_repository": "https://github.com/wertyuilife2/go2_rl_robotlab",
+    "source_revision_reviewed": "28b4516d22617b11aeaf8ead63cc00b0c0bcd1bd",
+    "license_metadata": "mit",
+    "files": {
+      "policy.onnx": "a1fef6a745b74a8cf00669d38a6113fe8c74a6b33a611fbfea7ced6607e2b371"
+    },
+    "input": [1, 450],
+    "output": [1, 12],
+    "history": "10 frames, observation-term-major, oldest to newest"
+  }
+}

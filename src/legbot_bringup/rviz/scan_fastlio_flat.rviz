@@ -1,0 +1,587 @@
+Panels:
+  - Class: rviz_common/Displays
+    Help Height: 138
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global planning (PCT)1
+        - /Local planning1
+        - /Robot sensing and state1
+      Splitter Ratio: 0.6495726704597473
+    Tree Height: 1754
+  - Class: rviz_common/Selection
+    Name: Selection
+  - Class: rviz_common/Tool Properties
+    Expanded: ~
+    Name: Tool Properties
+    Splitter Ratio: 0.5
+  - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.3499999940395355
+      Cell Size: 1
+      Class: rviz_default_plugins/Grid
+      Color: 120; 120; 120
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Ground grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 40
+      Reference Frame: odom
+      Value: true
+    - Alpha: 1
+      Class: rviz_default_plugins/RobotModel
+      Collision Enabled: false
+      Description File: ""
+      Description Source: Topic
+      Description Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /go2/robot_description
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+      Mass Properties:
+        Inertia: false
+        Mass: false
+      Name: GO2 robot
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ^(odom|base|trunk|scan_sliding_map|FL_.*|FR_.*|RL_.*|RR_.*|front_camera|imu_link|lidar|livox_.*|utlidar_.*)$
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        FL_calf:
+          Value: true
+        FL_foot:
+          Value: true
+        FL_hip:
+          Value: true
+        FL_thigh:
+          Value: true
+        FR_calf:
+          Value: true
+        FR_foot:
+          Value: true
+        FR_hip:
+          Value: true
+        FR_thigh:
+          Value: true
+        RL_calf:
+          Value: true
+        RL_foot:
+          Value: true
+        RL_hip:
+          Value: true
+        RL_thigh:
+          Value: true
+        RR_calf:
+          Value: true
+        RR_foot:
+          Value: true
+        RR_hip:
+          Value: true
+        RR_thigh:
+          Value: true
+        base:
+          Value: true
+        front_camera:
+          Value: true
+        imu_link:
+          Value: true
+        lidar:
+          Value: true
+        livox_imu_link:
+          Value: true
+        livox_link:
+          Value: true
+        odom:
+          Value: true
+        scan_sliding_map:
+          Value: true
+        trunk:
+          Value: true
+        utlidar_imu:
+          Value: true
+        utlidar_lidar:
+          Value: true
+      Marker Scale: 0.5
+      Name: Main TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        odom:
+          base:
+            trunk:
+              FL_hip:
+                FL_thigh:
+                  FL_calf:
+                    FL_foot:
+                      {}
+              FR_hip:
+                FR_thigh:
+                  FR_calf:
+                    FR_foot:
+                      {}
+              RL_hip:
+                RL_thigh:
+                  RL_calf:
+                    RL_foot:
+                      {}
+              RR_hip:
+                RR_thigh:
+                  RR_calf:
+                    RR_foot:
+                      {}
+              front_camera:
+                {}
+              imu_link:
+                {}
+              lidar:
+                utlidar_lidar:
+                  utlidar_imu:
+                    {}
+              livox_link:
+                livox_imu_link:
+                  {}
+          scan_sliding_map:
+            {}
+      Update Interval: 0
+      Value: true
+    - Class: rviz_common/Group
+      Displays:
+        - Alpha: 0.2199999988079071
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 7.167029857635498
+            Min Value: 0.008092070929706097
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz_default_plugins/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: AxisColor
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Max Intensity: 4096
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Global PCD
+          Position Transformer: XYZ
+          Selectable: true
+          Size (Pixels): 2
+          Size (m): 0.029999999329447746
+          Style: Points
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /global_points
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Alpha: 0.6499999761581421
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 6.999972820281982
+            Min Value: 0.013091733679175377
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz_default_plugins/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: AxisColor
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Max Intensity: 4096
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Tomogram
+          Position Transformer: XYZ
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.07999999821186066
+          Style: Boxes
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /tomogram
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz_default_plugins/Path
+          Color: 255; 60; 40
+          Enabled: true
+          Head Diameter: 0.30000001192092896
+          Head Length: 0.20000000298023224
+          Length: 0.30000001192092896
+          Line Style: Billboards
+          Line Width: 0.11999999731779099
+          Name: PCT global path
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 255; 85; 255
+          Pose Style: None
+          Radius: 0.029999999329447746
+          Shaft Diameter: 0.10000000149011612
+          Shaft Length: 0.10000000149011612
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /pct_path
+          Value: true
+      Enabled: true
+      Name: Global planning (PCT)
+    - Class: rviz_common/Group
+      Displays:
+        - Class: rviz_default_plugins/MarkerArray
+          Enabled: true
+          Name: Mission waypoints
+          Namespaces:
+            mission_route: true
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /scan/mission_waypoints
+          Value: true
+        - Class: rviz_default_plugins/MarkerArray
+          Enabled: true
+          Name: Recorded multi-floor keypoints
+          Namespaces:
+            {}
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /scan/recorded_keypoint_markers
+          Value: true
+        - Class: rviz_default_plugins/Marker
+          Enabled: true
+          Name: SCAN local B-spline path
+          Namespaces:
+            {}
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /local_planner/optimal_path
+          Value: true
+        - Class: rviz_default_plugins/Marker
+          Enabled: true
+          Name: SCAN body-height planning goal
+          Namespaces:
+            {}
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /local_planner/goal
+          Value: true
+        - Class: rviz_default_plugins/Marker
+          Enabled: true
+          Name: Manual XY goal (estimated floor)
+          Namespaces:
+            {}
+          Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /scan/manual_ground_goal
+          Value: true
+        - Class: rviz_default_plugins/Marker
+          Enabled: true
+          Name: SCAN dynamic local target
+          Namespaces:
+            {}
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /scan/local_target
+          Value: true
+        - Class: rviz_default_plugins/Marker
+          Enabled: true
+          Name: SCAN expected heading
+          Namespaces:
+            {}
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /scan/heading_vector
+          Value: true
+        - Alpha: 0.41999998688697815
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz_default_plugins/PointCloud2
+          Color: 80; 180; 255
+          Color Transformer: FlatColor
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Max Intensity: 4096
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Active planner occupancy
+          Position Transformer: XYZ
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.10000000149011612
+          Style: Boxes
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /local_planner/grid_map/occupancy_inflate
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Class: rviz_default_plugins/Marker
+          Enabled: false
+          Name: SCAN sliding-map boundary
+          Namespaces:
+            {}
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /scan/grid_map/sliding_map_bbox
+          Value: false
+      Enabled: true
+      Name: Local planning
+    - Class: rviz_common/Group
+      Displays:
+        - Alpha: 0.75
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 1.693450927734375
+            Min Value: -1.1038230657577515
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz_default_plugins/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: AxisColor
+          Decay Time: 0.25
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Max Intensity: 4096
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: FAST-LIO registered cloud
+          Position Transformer: XYZ
+          Selectable: true
+          Size (Pixels): 2
+          Size (m): 0.02500000037252903
+          Style: Points
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /fast_lio/cloud_registered
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz_default_plugins/Path
+          Color: 40; 220; 90
+          Enabled: true
+          Head Diameter: 0.20000000298023224
+          Head Length: 0.15000000596046448
+          Length: 0.20000000298023224
+          Line Style: Lines
+          Line Width: 0.05000000074505806
+          Name: FAST-LIO estimated trajectory
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 40; 220; 90
+          Pose Style: None
+          Radius: 0.019999999552965164
+          Shaft Diameter: 0.05000000074505806
+          Shaft Length: 0.07999999821186066
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /fast_lio/path
+          Value: true
+        - Angle Tolerance: 0.10000000149011612
+          Class: rviz_default_plugins/Odometry
+          Covariance:
+            Orientation:
+              Alpha: 0.5
+              Color: 255; 255; 127
+              Color Style: Unique
+              Frame: Local
+              Offset: 1
+              Scale: 1
+              Value: true
+            Position:
+              Alpha: 0.30000001192092896
+              Color: 204; 51; 204
+              Scale: 1
+              Value: true
+            Value: true
+          Enabled: false
+          Keep: 100
+          Name: FAST-LIO base odometry
+          Position Tolerance: 0.05000000074505806
+          Shape:
+            Alpha: 0.699999988079071
+            Axes Length: 0.30000001192092896
+            Axes Radius: 0.019999999552965164
+            Color: 255; 255; 0
+            Head Length: 0.07000000029802322
+            Head Radius: 0.03999999910593033
+            Shaft Length: 0.20000000298023224
+            Shaft Radius: 0.019999999552965164
+            Value: Arrow
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /fast_lio/odometry_base
+          Value: false
+      Enabled: true
+      Name: Robot sensing and state
+  Enabled: true
+  Global Options:
+    Background Color: 38; 38; 38
+    Fixed Frame: odom
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+      Hide Inactive Objects: true
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+    - Class: rviz_default_plugins/Measure
+      Line color: 128; 128; 0
+    - Class: rviz_default_plugins/PublishPoint
+      Single click: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /scan/waypoint_delete
+    - Class: rviz_default_plugins/SetGoal
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /scan/waypoint_input
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 21.61775779724121
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Focal Point:
+        X: 4.499490737915039
+        Y: -0.2139846384525299
+        Z: 0.7047340869903564
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.6050000786781311
+      Target Frame: odom
+      Value: Orbit (rviz_default_plugins)
+      Yaw: 4.255032062530518
+    Saved: ~
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 2166
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000100000000000001f4000007d6fc0200000004fb000000100044006900730070006c0061007900730100000070000007d60000018600fffffffb0000001200530065006c0065006300740069006f006e00000001b70000006e000000b200fffffffb0000001e0054006f006f006c002000500072006f0070006500720074006900650073000000023c00000127000000b200fffffffb0000000a0056006900650077007300000002a1000000c20000013800ffffff00000600000007d600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Selection:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Views:
+    collapsed: false
+  Width: 2048
+  X: 2048
+  Y: 64

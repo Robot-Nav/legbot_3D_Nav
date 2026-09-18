@@ -1,0 +1,50 @@
+/**:
+  ros__parameters:
+    feature_extract_enable: false
+    point_filter_num: 2
+    max_iteration: 3
+    filter_size_surf: 0.15
+    filter_size_map: 0.15
+    cube_side_length: 200.0
+    runtime_pos_log_enable: false
+    map_file_path: ./test.pcd
+    common:
+      lid_topic: /unitree/lidar
+      # Prefer the L1's own IMU: it shares the lidar clock and has a factory
+      # lidar-to-IMU extrinsic published by Unitree.
+      imu_topic: /unitree/lidar_imu
+      time_sync_en: false
+      time_offset_lidar_to_imu: 0.0
+      world_frame: odom
+      body_frame: utlidar_imu
+    preprocess:
+      # Dedicated Unitree L1 PointCloud2 handler: x/y/z/intensity/time/ring.
+      lidar_type: 5
+      scan_line: 18
+      blind: 0.50
+      timestamp_unit: 0
+      scan_rate: 10
+    mapping:
+      acc_cov: 0.1
+      gyr_cov: 0.1
+      b_acc_cov: 0.0001
+      b_gyr_cov: 0.0001
+      fov_degree: 360.0
+      det_range: 30.0
+      extrinsic_est_en: false
+      # Unitree factory L1 calibration: lidar pose in the L1 IMU frame.
+      extrinsic_T: [0.007698, 0.014655, -0.00667]
+      extrinsic_R: [1.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0,
+                    0.0, 0.0, 1.0]
+    publish:
+      path_en: true
+      effect_map_en: false
+      map_en: true
+      scan_publish_en: true
+      dense_publish_en: false
+      scan_bodyframe_pub_en: true
+      tf_en: false
+    pcd_save:
+      pcd_save_en: false
+      interval: -1

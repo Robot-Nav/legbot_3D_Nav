@@ -1,0 +1,18 @@
+{
+  "fast_lio": {
+    "url": "https://github.com/Ericsii/FAST_LIO_ROS2.git",
+    "commit": "2fffc570a25d0df172720bac034fbdb6a13d2162"
+  },
+  "livox_ros_driver2": {
+    "url": "https://github.com/Livox-SDK/livox_ros_driver2.git",
+    "commit": "4a1def929e5b59c7a8122d19fce6efba581ce9f7"
+  },
+  "unitree_sdk2": {
+    "url": "https://github.com/unitreerobotics/unitree_sdk2.git",
+    "commit": "9754cd153af3da471b0fe5f3aa535e426fb11db3"
+  },
+  "livox_sdk2": {
+    "url": "https://github.com/Livox-SDK/Livox-SDK2.git",
+    "commit": "08f523c930b2f0ba1e98a6afaa8d7476bf479908"
+  }
+}

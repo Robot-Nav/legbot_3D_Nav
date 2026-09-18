@@ -1,0 +1,195 @@
+#!/usr/bin/python3
+"""Coordinate GO2 stand-up, SCAN plan acceptance and RL activation."""
+import math
+import time
+
+import rclpy
+from nav_msgs.msg import Odometry
+from rclpy.executors import ExternalShutdownException
+try:
+    from rclpy.exceptions import RCLError
+except ImportError:  # Jazzy exposes the underlying shutdown error as RuntimeError.
+    RCLError = RuntimeError
+from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
+from scan_planner.msg import Bspline
+from sensor_msgs.msg import JointState, PointCloud2
+from std_msgs.msg import Bool, Int32
+
+
+class DemoSequencer(Node):
+    def __init__(self):
+        super().__init__('go2_demo_sequencer')
+        self.crouch_wait = float(self.declare_parameter('crouch_wait_seconds', 3.0).value)
+        self.stand_wait = float(self.declare_parameter('stand_wait_seconds', 5.0).value)
+        self.pulse_seconds = float(self.declare_parameter('mode_pulse_seconds', 1.0).value)
+        self.goal_settle_seconds = max(
+            0.0, float(self.declare_parameter('goal_settle_seconds', 1.5).value))
+        self.odom_topic = str(self.declare_parameter(
+            'odom_topic', '/fast_lio/odometry_base').value)
+        self.cloud_topic = str(self.declare_parameter(
+            'cloud_topic', '/fast_lio/cloud_registered').value)
+        self.localization_label = str(self.declare_parameter(
+            'localization_label', 'FAST-LIO').value)
+        self.joint_seen = self.odom_seen = self.cloud_seen = self.plan_seen = False
+        self.plan_ready_source_seen = False
+        self.mission_complete = False
+        self.state = 'waiting_for_joint_states'
+        self.state_started = time.monotonic()
+        self.last_wait_log = 0.0
+
+        latched = QoSProfile(depth=1)
+        latched.reliability = ReliabilityPolicy.RELIABLE
+        latched.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        self.mode_pub = self.create_publisher(Int32, '/go2/control_mode', 10)
+        self.ready_pub = self.create_publisher(Bool, '/go2/demo_ready', latched)
+        self.create_subscription(JointState, '/joint_states', self.on_joint, qos_profile_sensor_data)
+        self.create_subscription(
+            Odometry, self.odom_topic, self.on_odom, qos_profile_sensor_data)
+        self.create_subscription(
+            PointCloud2, self.cloud_topic, self.on_cloud, qos_profile_sensor_data)
+        self.create_subscription(Bspline, '/scan/planning/bspline', self.on_plan, 10)
+        self.create_subscription(Bool, '/scan/plan_ready', self.on_plan_ready, latched)
+        self.create_subscription(Bool, '/scan/mission_complete', self.on_complete, latched)
+        self.create_timer(0.05, self.tick)
+        self.get_logger().info('Waiting for controller joint states')
+
+    def enter(self, state):
+        self.state = state
+        self.state_started = time.monotonic()
+
+    def on_joint(self, msg):
+        self.joint_seen = len(msg.name) >= 12 and len(msg.position) >= 12
+
+    def on_odom(self, msg):
+        p = msg.pose.pose.position
+        q = msg.pose.pose.orientation
+        values = (p.x, p.y, p.z, q.x, q.y, q.z, q.w)
+        q_norm = math.sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w)
+        self.odom_seen = (bool(msg.header.frame_id)
+                          and all(math.isfinite(v) for v in values)
+                          and max(abs(p.x), abs(p.y), abs(p.z)) <= 10000.0
+                          and 0.5 <= q_norm <= 1.5)
+
+    def on_cloud(self, msg):
+        self.cloud_seen = bool(msg.header.frame_id) and msg.width * msg.height > 0
+
+    def on_plan(self, msg):
+        if self.plan_ready_source_seen:
+            # Once a waypoint coordinator is present, only its goal-matched
+            # plan_ready acknowledgment may arm RL walking. A delayed spline
+            # from the preceding target is not permission to move.
+            return
+        points = [(p.x, p.y, p.z) for p in msg.pos_pts]
+        if points and max(math.dist(points[0], point) for point in points) > 0.05:
+            self.plan_seen = True
+
+    def on_plan_ready(self, msg):
+        self.plan_ready_source_seen = True
+        self.plan_seen = bool(msg.data)
+
+    def on_complete(self, msg):
+        self.mission_complete = bool(msg.data)
+        if not self.mission_complete and self.state in (
+                'complete', 'settling_at_goal', 'stop_pulse'):
+            self.plan_seen = False
+            self.get_logger().info('New waypoint mission: waiting for a fresh SCAN trajectory')
+            self.enter('waiting_for_scan_plan')
+
+    def publish_mode(self, mode):
+        self.mode_pub.publish(Int32(data=mode))
+
+    def tick(self):
+        elapsed = time.monotonic() - self.state_started
+        if self.state == 'waiting_for_joint_states':
+            if self.joint_seen:
+                self.get_logger().info('Controller ready: requesting crouch transition')
+                self.enter('first_stand_pulse')
+        elif self.state == 'first_stand_pulse':
+            self.publish_mode(2)
+            if elapsed >= self.pulse_seconds:
+                self.enter('crouch_wait')
+        elif self.state == 'crouch_wait':
+            if elapsed >= self.crouch_wait:
+                self.get_logger().info('Requesting fixed stand transition')
+                self.enter('second_stand_pulse')
+        elif self.state == 'second_stand_pulse':
+            self.publish_mode(2)
+            if elapsed >= self.pulse_seconds:
+                self.enter('stand_wait')
+        elif self.state == 'stand_wait':
+            if elapsed >= self.stand_wait:
+                self.enter('waiting_for_navigation_inputs')
+        elif self.state == 'waiting_for_navigation_inputs':
+            if self.odom_seen and self.cloud_seen:
+                self.ready_pub.publish(Bool(data=True))
+                self.get_logger().info(
+                    '%s ready: enabling SCAN waypoint mission' % self.localization_label)
+                self.enter('waiting_for_scan_plan')
+            elif time.monotonic() - self.last_wait_log >= 5.0:
+                self.last_wait_log = time.monotonic()
+                self.get_logger().info(
+                    'Waiting for %s inputs: odometry=%s cloud=%s '
+                    '(topics: %s, %s)' %
+                    (self.localization_label, self.odom_seen, self.cloud_seen,
+                     self.odom_topic, self.cloud_topic))
+        elif self.state == 'waiting_for_scan_plan':
+            self.ready_pub.publish(Bool(data=True))
+            if self.mission_complete:
+                # An already-reached nearby goal needs no new spline. Never
+                # pulse RL walking after the execution adapter confirmed stop.
+                self.enter('stop_pulse')
+            elif self.plan_seen:
+                self.get_logger().info('SCAN trajectory accepted: enabling configured RL walking policy')
+                self.enter('rl_pulse')
+        elif self.state == 'rl_pulse':
+            if self.mission_complete:
+                self.enter('stop_pulse')
+                return
+            self.publish_mode(3)
+            if elapsed >= self.pulse_seconds:
+                self.enter('running')
+        elif self.state == 'running' and self.mission_complete:
+            # The execution adapter has already latched cmd_vel to zero. Keep
+            # the learned gait active briefly so all swing legs can touch down
+            # before fixed-stand starts interpolating joint positions. An
+            # immediate mode switch makes the body visibly rock once for gait
+            # arrest and again for stand-pose interpolation.
+            self.get_logger().info(
+                'Waypoint mission complete: holding zero command for %.2fs before fixed stand' %
+                self.goal_settle_seconds)
+            self.enter('settling_at_goal')
+        elif self.state == 'settling_at_goal':
+            if elapsed >= self.goal_settle_seconds:
+                self.get_logger().info('Goal gait settled: returning to fixed stand')
+                self.enter('stop_pulse')
+        elif self.state == 'stop_pulse':
+            self.publish_mode(2)
+            if elapsed >= self.pulse_seconds:
+                if self.mission_complete:
+                    self.enter('complete')
+                else:
+                    self.plan_seen = False
+                    self.enter('waiting_for_scan_plan')
+
+
+def main():
+    rclpy.init()
+    node = DemoSequencer()
+    try:
+        rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException, RCLError):
+        pass
+    finally:
+        try:
+            if rclpy.ok():
+                node.publish_mode(1)
+            node.destroy_node()
+            if rclpy.ok():
+                rclpy.shutdown()
+        except (KeyboardInterrupt, ExternalShutdownException, RCLError, RuntimeError):
+            pass
+
+
+if __name__ == '__main__':
+    main()

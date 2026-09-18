@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package format="3">
+<name>legbot_bringup</name><version>0.2.0</version><description>Launch, simulation, visualization and hardware bringup for Legbot GO2 navigation.</description><maintainer email="biao876990970@hotmail.com">Robot-Nav</maintainer><license>Apache-2.0</license><buildtool_depend>ament_cmake</buildtool_depend>
+<depend>rclcpp</depend>
+<depend>std_msgs</depend>
+<depend>std_srvs</depend>
+<depend>geometry_msgs</depend>
+<depend>nav_msgs</depend>
+<depend>sensor_msgs</depend>
+<exec_depend>sensor_msgs_py</exec_depend>
+<depend>visualization_msgs</depend>
+<depend>tf2</depend>
+<depend>tf2_ros</depend>
+<depend>tf2_geometry_msgs</depend>
+<depend>message_filters</depend>
+<depend>cv_bridge</depend>
+<depend>pcl_conversions</depend>
+<depend>pcl_ros</depend>
+<depend>legbot_runtime</depend>
+<depend>launch_ros</depend>
+<depend>ros_gz_sim</depend>
+<depend>ros_gz_bridge</depend>
+<depend>robot_state_publisher</depend>
+<depend>controller_manager</depend>
+<depend>go2_description</depend>
+<depend>rclpy</depend>
+<depend>control_input_msgs</depend>
+<depend>tf2_sensor_msgs</depend>
+<exec_depend>pct_planner</exec_depend><exec_depend>scan_planner</exec_depend><exec_depend>ego_planner</exec_depend><exec_depend>fast_lio</exec_depend><exec_depend>gz_quadruped_hardware</exec_depend><exec_depend>rl_quadruped_controller</exec_depend>
+<export><build_type>ament_cmake</build_type></export></package>

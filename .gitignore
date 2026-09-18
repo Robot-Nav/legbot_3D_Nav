@@ -1,0 +1,27 @@
+# Colcon build products
+/build/
+/install/
+/log/
+/.agents/
+/.codex/
+
+# Python and editor state
+__pycache__/
+*.py[cod]
+.idea/
+.vscode/
+*.log
+*~
+*.bak
+*.orig
+*.rej
+.DS_Store
+
+# Local dependencies and generated runtime data
+/.venv-jazzy/
+/.deps/
+/third_party/
+/data/*
+!/data/README.md
+!/data/routes/
+!/data/routes/.gitkeep

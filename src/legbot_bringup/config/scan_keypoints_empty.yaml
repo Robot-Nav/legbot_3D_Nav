@@ -1,0 +1,4 @@
+scan_planner_node:
+  ros__parameters:
+    # navi_mode:=2 requires a recorded file with at least one waypoint.
+    fsm.waypoint_num: 0

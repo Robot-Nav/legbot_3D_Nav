@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <world name="tower">
+    <physics name="physics" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+    <gravity>0 0 -9.81</gravity>
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre</render_engine>
+    </plugin>
+    <light name="sun" type="directional">
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <direction>-0.5 0.1 -0.9</direction>
+      <cast_shadows>true</cast_shadows>
+    </light>
+    <model name="ground">
+      <static>true</static>
+      <link name="ground">
+        <collision name="collision"><geometry><plane><normal>0 0 1</normal><size>30 30</size></plane></geometry></collision>
+        <visual name="visual"><geometry><plane><normal>0 0 1</normal><size>30 30</size></plane></geometry></visual>
+      </link>
+    </model>
+
+    <!-- Eight 0.10 m risers with 0.30 m treads, sized for the GO2 stair policy. -->
+    <model name="scan_staircase">
+      <static>true</static>
+      <link name="stairs">
+        <collision name="step_1"><pose>0.15 0 0.05 0 0 0</pose><geometry><box><size>0.30 1.60 0.10</size></box></geometry></collision>
+        <visual name="visual_step_1"><pose>0.15 0 0.05 0 0 0</pose><geometry><box><size>0.30 1.60 0.10</size></box></geometry><material><diffuse>0.55 0.55 0.58 1</diffuse></material></visual>
+        <collision name="step_2"><pose>0.45 0 0.10 0 0 0</pose><geometry><box><size>0.30 1.60 0.20</size></box></geometry></collision>
+        <visual name="visual_step_2"><pose>0.45 0 0.10 0 0 0</pose><geometry><box><size>0.30 1.60 0.20</size></box></geometry><material><diffuse>0.50 0.50 0.53 1</diffuse></material></visual>
+        <collision name="step_3"><pose>0.75 0 0.15 0 0 0</pose><geometry><box><size>0.30 1.60 0.30</size></box></geometry></collision>
+        <visual name="visual_step_3"><pose>0.75 0 0.15 0 0 0</pose><geometry><box><size>0.30 1.60 0.30</size></box></geometry><material><diffuse>0.55 0.55 0.58 1</diffuse></material></visual>
+        <collision name="step_4"><pose>1.05 0 0.20 0 0 0</pose><geometry><box><size>0.30 1.60 0.40</size></box></geometry></collision>
+        <visual name="visual_step_4"><pose>1.05 0 0.20 0 0 0</pose><geometry><box><size>0.30 1.60 0.40</size></box></geometry><material><diffuse>0.50 0.50 0.53 1</diffuse></material></visual>
+        <collision name="step_5"><pose>1.35 0 0.25 0 0 0</pose><geometry><box><size>0.30 1.60 0.50</size></box></geometry></collision>
+        <visual name="visual_step_5"><pose>1.35 0 0.25 0 0 0</pose><geometry><box><size>0.30 1.60 0.50</size></box></geometry><material><diffuse>0.55 0.55 0.58 1</diffuse></material></visual>
+        <collision name="step_6"><pose>1.65 0 0.30 0 0 0</pose><geometry><box><size>0.30 1.60 0.60</size></box></geometry></collision>
+        <visual name="visual_step_6"><pose>1.65 0 0.30 0 0 0</pose><geometry><box><size>0.30 1.60 0.60</size></box></geometry><material><diffuse>0.50 0.50 0.53 1</diffuse></material></visual>
+        <collision name="step_7"><pose>1.95 0 0.35 0 0 0</pose><geometry><box><size>0.30 1.60 0.70</size></box></geometry></collision>
+        <visual name="visual_step_7"><pose>1.95 0 0.35 0 0 0</pose><geometry><box><size>0.30 1.60 0.70</size></box></geometry><material><diffuse>0.55 0.55 0.58 1</diffuse></material></visual>
+        <collision name="step_8"><pose>2.25 0 0.40 0 0 0</pose><geometry><box><size>0.30 1.60 0.80</size></box></geometry></collision>
+        <visual name="visual_step_8"><pose>2.25 0 0.40 0 0 0</pose><geometry><box><size>0.30 1.60 0.80</size></box></geometry><material><diffuse>0.50 0.50 0.53 1</diffuse></material></visual>
+        <collision name="top_platform"><pose>3.70 0 0.40 0 0 0</pose><geometry><box><size>2.60 2.40 0.80</size></box></geometry></collision>
+        <visual name="visual_top_platform"><pose>3.70 0 0.40 0 0 0</pose><geometry><box><size>2.60 2.40 0.80</size></box></geometry><material><diffuse>0.42 0.48 0.55 1</diffuse></material></visual>
+      </link>
+    </model>
+  </world>
+</sdf>
