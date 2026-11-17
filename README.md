@@ -14,6 +14,7 @@ Legbot is a ROS 2 Jazzy workspace for 3D navigation with the Unitree GO2. It con
 ---
 
 PNG:
+
 <img width="2560" height="1080" alt="contact-sheet-hd" src="https://github.com/user-attachments/assets/9446e4eb-45a8-4b6e-a66c-612f9e3cac46" />
 
 
