@@ -11,6 +11,28 @@
 
 Legbot 是面向 Unitree GO2/GO2 EDU 的 ROS 2 Jazzy 三维导航工作区。工程将激光—惯性里程计、局部避障、多楼层参考路径、强化学习步态、Gazebo 仿真和带安全门的真机接口组织在同一套启动体系中。
 
+---
+
+PNG:
+
+
+<img width="2560" height="1080" alt="contact-sheet-hd" src="https://github.com/user-attachments/assets/9446e4eb-45a8-4b6e-a66c-612f9e3cac46" />
+
+
+Video：
+
+
+
+https://github.com/user-attachments/assets/a22cbeaa-1105-4142-913b-2253239482a1
+
+
+
+
+---
+
+
+
+
 ## 项目作用
 
 四足机器人能跨越台阶和不平地形，但导航系统还需要解决“机器人在哪里、前方能否通过、下一步往哪里走、如何把速度变成稳定落足”四个问题。本项目对应地组合了四层能力：
