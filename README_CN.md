@@ -13,7 +13,7 @@ Legbot 是面向 Unitree GO2/GO2 EDU 的 ROS 2 Jazzy 三维导航工作区。工
 
 ---
 
-PNG:
+PNG：
 
 
 <img width="2560" height="1080" alt="contact-sheet-hd" src="https://github.com/user-attachments/assets/9446e4eb-45a8-4b6e-a66c-612f9e3cac46" />
